@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" role="img">
+  <rect width="120" height="120" rx="16" fill="#eef2ff" />
+  <circle cx="60" cy="50" r="28" fill="#0ea5a4" />
+  <text x="60" y="95" fill="#0f172a" font-size="14" font-family="Arial" text-anchor="middle">Nairobi Tech</text>
+</svg>

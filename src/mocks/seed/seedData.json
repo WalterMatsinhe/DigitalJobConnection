@@ -1,0 +1,104 @@
+{
+  "jobs": [
+    {
+      "id": "job-1",
+      "title": "Junior Frontend Developer",
+      "company": "Nairobi Tech Hub",
+      "logoUrl": "/assets/company1.svg",
+      "description": "Build UI with React and Tailwind. Great for recent grads and bootcamp grads. Work on cutting-edge web applications serving the East African market.",
+      "requirements": ["HTML","CSS","JavaScript","React","Git"],
+      "sector": "IT",
+      "location": {"county":"Nairobi","town":"Nairobi"},
+      "remote": false,
+      "postedAt":"2025-10-25"
+    },
+    {
+      "id": "job-2",
+      "title": "Trainee Accountant",
+      "company": "Kisumu Finance Academy",
+      "logoUrl": "/assets/company2.svg",
+      "description": "Entry level accounting trainee role with structured training. Learn accounting principles and practices in a real business environment.",
+      "requirements": ["Accounting basics","Excel","KCSE"],
+      "sector": "Finance",
+      "location": {"county":"Kisumu","town":"Kisumu"},
+      "remote": false,
+      "postedAt":"2025-10-20"
+    },
+    {
+      "id": "job-3",
+      "title": "Sales Representative (Remote)",
+      "company": "East Africa E-commerce",
+      "logoUrl": "/assets/company1.svg",
+      "description": "Sell SaaS products to businesses across Kenya, Uganda and Tanzania. Fully remote with commission-based compensation.",
+      "requirements": ["Sales experience","Communication skills","CRM knowledge"],
+      "sector": "Sales",
+      "location": {"county":"Remote","town":"Remote"},
+      "remote": true,
+      "postedAt":"2025-10-26"
+    },
+    {
+      "id": "job-4",
+      "title": "Data Entry Clerk",
+      "company": "Mombasa Logistics Hub",
+      "logoUrl": "/assets/company2.svg",
+      "description": "Accurate data entry for logistics operations. Fast-paced environment, opportunity to learn supply chain.",
+      "requirements": ["Typing 50+ WPM","Attention to detail","Excel"],
+      "sector": "Logistics",
+      "location": {"county":"Mombasa","town":"Mombasa"},
+      "remote": false,
+      "postedAt":"2025-10-24"
+    },
+    {
+      "id": "job-5",
+      "title": "Agricultural Extension Officer",
+      "company": "Kisii Farmer Cooperative",
+      "logoUrl": "/assets/company1.svg",
+      "description": "Support smallholder farmers with training on modern farming techniques and market access.",
+      "requirements": ["Agricultural knowledge","Communication","Willingness to travel"],
+      "sector": "Agriculture",
+      "location": {"county":"Kisii","town":"Kisii"},
+      "remote": false,
+      "postedAt":"2025-10-23"
+    }
+  ],
+  "users": [
+    {
+      "id":"user-1",
+      "name":"Amina Otieno",
+      "roleTags":["jobseeker"],
+      "skills":["React","UI Design","Figma"],
+      "location":{"county":"Nairobi"},
+      "avatarUrl": "/assets/avatar1.svg"
+    },
+    {
+      "id":"mentor-1",
+      "name":"Peter Mwangi",
+      "roleTags":["mentor"],
+      "skills":["React","Node.js","Full-stack"],
+      "yearsExperience":6,
+      "location":{"county":"Nairobi"},
+      "avatarUrl": "/assets/avatar2.svg",
+      "bio":"Full-stack developer with 6 years experience. Passionate about mentoring junior developers."
+    },
+    {
+      "id":"mentor-2",
+      "name":"Grace Kipchoge",
+      "roleTags":["mentor"],
+      "skills":["Data Science","Python","Machine Learning"],
+      "yearsExperience":4,
+      "location":{"county":"Nairobi"},
+      "avatarUrl": "/assets/avatar1.svg",
+      "bio":"Data scientist helping aspiring analysts break into tech."
+    },
+    {
+      "id":"mentor-3",
+      "name":"James Ochieng",
+      "roleTags":["mentor"],
+      "skills":["UI/UX Design","Prototyping","User Research"],
+      "yearsExperience":5,
+      "location":{"county":"Kisumu"},
+      "avatarUrl": "/assets/avatar2.svg",
+      "bio":"Design thinking enthusiast. Help young designers build portfolios."
+    }
+  ]
+}

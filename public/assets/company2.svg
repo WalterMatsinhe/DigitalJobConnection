@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" role="img">
+  <rect width="120" height="120" rx="16" fill="#fff7ed" />
+  <rect x="30" y="30" width="60" height="40" rx="6" fill="#fb923c" />
+  <text x="60" y="95" fill="#0f172a" font-size="14" font-family="Arial" text-anchor="middle">Kisumu Finance</text>
+</svg>
