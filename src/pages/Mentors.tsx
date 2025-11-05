@@ -28,7 +28,7 @@ export default function Mentors() {
     <div>
       <div className="mb-12 bg-gradient-to-r from-gray-800 to-gray-600 rounded-3xl p-10 text-white">
         <h1 className="text-4xl font-bold mb-3">Find Your Mentor</h1>
-        <p className="text-pink-100 text-lg max-w-2xl">Connect with experienced professionals who've achieved success in their fields. Get personalized guidance to accelerate your career.</p>
+        <p className="text-gray-100 text-lg max-w-2xl">Connect with experienced professionals who've achieved success in their fields. Get personalized guidance to accelerate your career.</p>
       </div>
       
       <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
@@ -39,7 +39,7 @@ export default function Mentors() {
             return (
             <div key={m.id} className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition overflow-hidden group">
               {/* Image */}
-              <div className="relative h-48 bg-gradient-to-br from-pink-400 to-pink-600 overflow-hidden">
+              <div className="relative h-48 bg-gradient-to-br from-gray-400 to-gray-600 overflow-hidden">
                 <img 
                   src={imageUrl} 
                   alt={m.name} 
@@ -51,7 +51,7 @@ export default function Mentors() {
               {/* Content */}
               <div className="p-6">
                 <h3 className="text-xl font-bold text-gray-900">{m.name}</h3>
-                <p className="text-sm text-pink-600 font-semibold mt-1">
+                <p className="text-sm text-gray-800 font-semibold mt-1">
                   {m.yearsExperience}+ years experience
                 </p>
                 
@@ -63,7 +63,7 @@ export default function Mentors() {
                   <p className="text-xs font-bold text-gray-700 mb-3 uppercase tracking-wide">Expertise</p>
                   <div className="flex flex-wrap gap-2">
                     {(m.skills || []).map((s: string) => (
-                      <span key={s} className="px-3 py-1.5 text-xs font-semibold bg-pink-100 text-pink-800 rounded-full">
+                      <span key={s} className="px-3 py-1.5 text-xs font-semibold bg-gray-200 text-gray-800 rounded-full">
                         {s}
                       </span>
                     ))}
@@ -71,10 +71,10 @@ export default function Mentors() {
                 </div>
 
                 <div className="mt-6 flex gap-3">
-                  <button className="flex-1 px-4 py-3 bg-gradient-to-r from-pink-600 to-pink-700 text-white font-semibold rounded-lg hover:shadow-lg transition">
+                  <button className="flex-1 px-4 py-3 bg-gradient-to-r from-gray-800 to-gray-900 text-white font-semibold rounded-lg hover:shadow-lg transition">
                     ✉️ Request
                   </button>
-                  <button className="flex-1 px-4 py-3 border-2 border-pink-600 text-pink-600 font-semibold rounded-lg hover:bg-pink-50 transition">
+                  <button className="flex-1 px-4 py-3 border-2 border-gray-800 text-gray-800 font-semibold rounded-lg hover:bg-gray-100 transition">
                     📅 Schedule
                   </button>
                 </div>

@@ -11,53 +11,105 @@ const jobImages: { [key: string]: string } = {
 }
 
 export default function JobCard({ job }: { job: any }) {
+  // Ensure we have a valid job ID
+  const jobId = job._id || job.id
+  if (!jobId) {
+    console.error('JobCard: No valid job ID found', job)
+    return null
+  }
+  
+  console.log('JobCard rendering job:', { id: jobId, title: job.title })
+  
   const jobImageUrl = jobImages[job.sector] || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=300&auto=format&fit=crop'
   
+  // Handle different data structures for company logo
+  let companyLogo = jobImageUrl
+  if (job.companyId) {
+    if (typeof job.companyId === 'object' && job.companyId.logo) {
+      companyLogo = job.companyId.logo
+    } else if (typeof job.companyId === 'string') {
+      // If companyId is just a string, use sector image as fallback
+      companyLogo = jobImageUrl
+    }
+  }
+
+  // Parse requirements - handle both string and array formats
+  const requirementsArray = typeof job.requirements === 'string' 
+    ? job.requirements.split(',').map((r: string) => r.trim()).filter(Boolean)
+    : Array.isArray(job.requirements) 
+    ? job.requirements 
+    : []
+  
   return (
-    <Card className="transition hover:shadow-xl hover:-translate-y-1 overflow-hidden">
-      <div className="flex flex-col md:flex-row items-start gap-5">
-        {/* Image */}
-        <div className="w-full md:w-32 md:h-32 shrink-0">
+    <Card className="transition hover:shadow-xl overflow-hidden border border-gray-200">
+      <div className="flex gap-5 items-start p-5">
+        {/* Company Logo - Large */}
+        <div className="shrink-0 pt-1">
           <img 
-            src={jobImageUrl} 
-            alt={job.title} 
-            className="w-full h-32 md:h-32 object-cover rounded-lg"
+            src={companyLogo} 
+            alt={job.company} 
+            className="w-24 h-24 rounded-lg object-cover border-2 border-gray-200"
+            onError={(e) => {
+              // Fallback to sector image if logo fails to load
+              (e.target as HTMLImageElement).src = jobImageUrl
+            }}
           />
         </div>
 
-        <div className="flex-1">
-          <div className="flex justify-between items-start gap-3">
+        {/* Job Details - Well Organized */}
+        <div className="flex-1 min-w-0">
+          <div className="flex justify-between items-start gap-4">
             <div className="flex-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="font-bold text-lg text-gray-900">
-                  <Link to={`/jobs/${job.id}`} className="hover:text-blue-600 transition">
-                    {job.title}
-                  </Link>
-                </h3>
-                {job.remote && <span className="px-2.5 py-1 text-xs font-semibold bg-green-100 text-green-800 rounded-full">🌍 Remote</span>}
+              <h3 className="font-bold text-lg text-gray-800">
+                <Link to={`/jobs/${jobId}`} className="hover:text-blue-600 transition">
+                  {job.title}
+                </Link>
+              </h3>
+              <div className="flex items-center gap-3 mt-2 text-sm text-gray-600">
+                <span>📍 {job.location?.county || job.location?.town || job.location}</span>
+                <span>•</span>
+                <span>💼 {job.jobType || 'Full-time'}</span>
               </div>
-              <p className="text-sm text-gray-600 mt-1.5 font-medium">{job.company}</p>
-              <p className="text-sm text-gray-500 mt-0.5">📍 {job.location?.county || job.location?.town}</p>
+              <p className="text-xs text-gray-500 mt-1">{job.company}</p>
             </div>
-            <div className="text-xs text-gray-500 whitespace-nowrap shrink-0">{job.postedAt}</div>
+            <span className="px-3 py-1 text-xs font-semibold rounded-full shrink-0 whitespace-nowrap bg-green-100 text-green-800">
+              Active
+            </span>
           </div>
 
-          <p className="mt-4 text-gray-700 text-sm line-clamp-2 leading-relaxed">{job.description}</p>
+          {/* Job Description */}
+          <p className="mt-3 text-sm text-gray-700 line-clamp-2">{job.description}</p>
 
-          <div className="mt-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
-            <div className="flex gap-2 text-xs flex-wrap">
-              {(job.requirements || []).slice(0,4).map((r: string) => (
-                <span key={r} className="px-2.5 py-1.5 bg-blue-100 text-blue-800 rounded-full font-medium">{r}</span>
-              ))}
-              {job.requirements?.length > 4 && (
-                <span className="px-2.5 py-1.5 text-gray-600 font-medium">+{job.requirements.length - 4} more</span>
-              )}
-            </div>
-
-            <Link to={`/jobs/${job.id}`} className="px-5 py-2 font-semibold text-blue-600 hover:bg-blue-50 rounded-lg transition">
-              View Details →
-            </Link>
+          {/* Skills/Requirements */}
+          <div className="mt-3 flex gap-2 text-xs flex-wrap">
+            {requirementsArray.slice(0, 3).map((r: string) => (
+              <span key={r} className="px-2.5 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">
+                {r}
+              </span>
+            ))}
+            {requirementsArray.length > 3 && (
+              <span className="px-2.5 py-1 text-gray-600 font-medium">
+                +{requirementsArray.length - 3} more
+              </span>
+            )}
           </div>
+
+          {/* Salary if available */}
+          {job.salary && (
+            <div className="mt-3 p-3 bg-amber-50 rounded-lg border border-amber-100">
+              <p className="text-sm text-amber-900 font-medium">
+                💰 {job.salary}
+              </p>
+            </div>
+          )}
+
+          {/* Action Button */}
+          <Link 
+            to={`/jobs/${jobId}`} 
+            className="inline-block mt-4 px-4 py-2 text-sm border border-blue-300 rounded-lg hover:bg-blue-50 transition font-medium text-blue-600"
+          >
+            View Details →
+          </Link>
         </div>
       </div>
     </Card>

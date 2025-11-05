@@ -9,7 +9,7 @@ export default function Footer() {
           {/* Brand */}
           <Link to="/" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-md">
-              <span className="text-pink-600 font-bold text-xs">DJC</span>
+              <span className="text-gray-800 font-bold text-xs">DJC</span>
             </div>
             <span className="text-sm font-bold hidden sm:inline">Digital Job Connection</span>
           </Link>
@@ -24,9 +24,9 @@ export default function Footer() {
           {/* Social & Copyright */}
           <div className="flex items-center space-x-4">
             <div className="flex gap-2 text-xs">
-              <a href="#" className="w-6 h-6 bg-gray-700 hover:bg-pink-600 rounded flex items-center justify-center transition">f</a>
-              <a href="#" className="w-6 h-6 bg-gray-700 hover:bg-pink-600 rounded flex items-center justify-center transition">in</a>
-              <a href="#" className="w-6 h-6 bg-gray-700 hover:bg-pink-600 rounded flex items-center justify-center transition">𝕏</a>
+              <a href="#" className="w-6 h-6 bg-gray-700 hover:bg-gray-600 rounded flex items-center justify-center transition">f</a>
+              <a href="#" className="w-6 h-6 bg-gray-700 hover:bg-gray-600 rounded flex items-center justify-center transition">in</a>
+              <a href="#" className="w-6 h-6 bg-gray-700 hover:bg-gray-600 rounded flex items-center justify-center transition">𝕏</a>
             </div>
             <span className="text-xs text-gray-400 hidden sm:inline">© {new Date().getFullYear()} DJC</span>
           </div>
