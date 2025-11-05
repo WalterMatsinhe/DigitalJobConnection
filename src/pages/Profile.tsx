@@ -158,7 +158,7 @@ export default function Profile() {
               education: user?.education || '',
               portfolio: user?.portfolio || '',
               avatar: defaultAvatar,
-              cv: user?.cv || ''
+              cv: ''
             } as UserProfile)
             if (defaultAvatar) {
               updateProfile({ avatar: defaultAvatar })
@@ -281,7 +281,6 @@ export default function Profile() {
           if (data.success) {
             // Update local profile with the uploaded CV
             setProfile({ ...profile as UserProfile, cv: file.name })
-            updateProfile({ cv: file.name })
             addToast('CV uploaded successfully!', 'success', 1500)
             setError('')
           } else {
@@ -416,7 +415,7 @@ export default function Profile() {
             <input
               type="text"
               value={companyProfile.name}
-              onChange={(e) => setProfile({ ...companyProfile, name: e.target.value })}
+              onChange={(e) => setProfile({ ...companyProfile, name: e.target.value } as CompanyProfile)}
               className="w-full p-2 border border-gray-300 rounded mb-4"
               required
             />
@@ -433,7 +432,7 @@ export default function Profile() {
             <input
               type="tel"
               value={companyProfile.phone}
-              onChange={(e) => setProfile({ ...companyProfile, phone: e.target.value })}
+              onChange={(e) => setProfile({ ...companyProfile, phone: e.target.value } as CompanyProfile)}
               className="w-full p-2 border border-gray-300 rounded mb-4"
               placeholder="+254 0000000"
             />
@@ -442,7 +441,7 @@ export default function Profile() {
             <input
               type="text"
               value={companyProfile.location}
-              onChange={(e) => setProfile({ ...companyProfile, location: e.target.value })}
+              onChange={(e) => setProfile({ ...companyProfile, location: e.target.value } as CompanyProfile)}
               className="w-full p-2 border border-gray-300 rounded"
               placeholder="City, Country"
             />
@@ -456,7 +455,7 @@ export default function Profile() {
             <input
               type="text"
               value={companyProfile.companyName}
-              onChange={(e) => setProfile({ ...companyProfile, companyName: e.target.value })}
+              onChange={(e) => setProfile({ ...companyProfile, companyName: e.target.value } as CompanyProfile)}
               className="w-full p-2 border border-gray-300 rounded mb-4"
               required
             />
@@ -465,7 +464,7 @@ export default function Profile() {
             <input
               type="text"
               value={companyProfile.industry}
-              onChange={(e) => setProfile({ ...companyProfile, industry: e.target.value })}
+              onChange={(e) => setProfile({ ...companyProfile, industry: e.target.value } as CompanyProfile)}
               className="w-full p-2 border border-gray-300 rounded mb-4"
               placeholder="e.g., Technology, Finance, Healthcare"
             />
@@ -474,7 +473,7 @@ export default function Profile() {
             <input
               type="url"
               value={companyProfile.website}
-              onChange={(e) => setProfile({ ...companyProfile, website: e.target.value })}
+              onChange={(e) => setProfile({ ...companyProfile, website: e.target.value } as CompanyProfile)}
               className="w-full p-2 border border-gray-300 rounded"
               placeholder="https://yourcompany.com"
             />
@@ -488,7 +487,7 @@ export default function Profile() {
             <input
               type="text"
               value={companyProfile.headline}
-              onChange={(e) => setProfile({ ...companyProfile, headline: e.target.value })}
+              onChange={(e) => setProfile({ ...companyProfile, headline: e.target.value } as CompanyProfile)}
               className="w-full p-2 border border-gray-300 rounded mb-4"
               placeholder="e.g., Leading Tech Innovator"
             />
@@ -496,7 +495,7 @@ export default function Profile() {
             <label className="block mb-2 font-semibold text-gray-700">Company Description</label>
             <textarea
               value={companyProfile.description}
-              onChange={(e) => setProfile({ ...companyProfile, description: e.target.value })}
+              onChange={(e) => setProfile({ ...companyProfile, description: e.target.value } as CompanyProfile)}
               className="w-full p-2 border border-gray-300 rounded mb-4 min-h-24"
               maxLength={500}
               placeholder="Tell us about your company, mission, and vision..."
@@ -506,7 +505,7 @@ export default function Profile() {
             <label className="block mb-2 font-semibold text-gray-700 mt-4">Company Bio</label>
             <textarea
               value={companyProfile.bio}
-              onChange={(e) => setProfile({ ...companyProfile, bio: e.target.value })}
+              onChange={(e) => setProfile({ ...companyProfile, bio: e.target.value } as CompanyProfile)}
               className="w-full p-2 border border-gray-300 rounded mb-4 min-h-24"
               maxLength={500}
               placeholder="Additional information about your company..."
@@ -522,7 +521,7 @@ export default function Profile() {
             <input
               type="number"
               value={companyProfile.employees}
-              onChange={(e) => setProfile({ ...companyProfile, employees: parseInt(e.target.value) || 0 })}
+              onChange={(e) => setProfile({ ...companyProfile, employees: parseInt(e.target.value) || 0 } as CompanyProfile)}
               className="w-full p-2 border border-gray-300 rounded mb-4"
               placeholder="e.g., 150"
             />
@@ -531,7 +530,7 @@ export default function Profile() {
             <input
               type="number"
               value={companyProfile.foundedYear}
-              onChange={(e) => setProfile({ ...companyProfile, foundedYear: parseInt(e.target.value) })}
+              onChange={(e) => setProfile({ ...companyProfile, foundedYear: parseInt(e.target.value) } as CompanyProfile)}
               className="w-full p-2 border border-gray-300 rounded"
               placeholder={new Date().getFullYear().toString()}
             />
@@ -545,7 +544,7 @@ export default function Profile() {
             <input
               type="url"
               value={companyProfile.social?.linkedin || ''}
-              onChange={(e) => setProfile({ ...companyProfile, social: { ...companyProfile.social, linkedin: e.target.value } })}
+              onChange={(e) => setProfile({ ...companyProfile, social: { ...companyProfile.social, linkedin: e.target.value } } as CompanyProfile)}
               className="w-full p-2 border border-gray-300 rounded mb-4"
               placeholder="https://linkedin.com/company/..."
             />
@@ -554,7 +553,7 @@ export default function Profile() {
             <input
               type="url"
               value={companyProfile.social?.twitter || ''}
-              onChange={(e) => setProfile({ ...companyProfile, social: { ...companyProfile.social, twitter: e.target.value } })}
+              onChange={(e) => setProfile({ ...companyProfile, social: { ...companyProfile.social, twitter: e.target.value } } as CompanyProfile)}
               className="w-full p-2 border border-gray-300 rounded mb-4"
               placeholder="https://twitter.com/..."
             />
@@ -563,7 +562,7 @@ export default function Profile() {
             <input
               type="url"
               value={companyProfile.social?.facebook || ''}
-              onChange={(e) => setProfile({ ...companyProfile, social: { ...companyProfile.social, facebook: e.target.value } })}
+              onChange={(e) => setProfile({ ...companyProfile, social: { ...companyProfile.social, facebook: e.target.value } } as CompanyProfile)}
               className="w-full p-2 border border-gray-300 rounded"
               placeholder="https://facebook.com/..."
             />
@@ -670,7 +669,7 @@ export default function Profile() {
             type="text"
             placeholder="John Doe"
             value={userProfile.name}
-            onChange={(e) => setProfile({ ...userProfile, name: e.target.value })}
+            onChange={(e) => setProfile({ ...userProfile, name: e.target.value } as UserProfile)}
             className="w-full p-2 border border-gray-300 rounded mb-4"
             required
           />
@@ -689,7 +688,7 @@ export default function Profile() {
             type="tel"
             placeholder="+254 0000000000"
             value={userProfile.phone}
-            onChange={(e) => setProfile({ ...userProfile, phone: e.target.value })}
+            onChange={(e) => setProfile({ ...userProfile, phone: e.target.value } as UserProfile)}
             className="w-full p-2 border border-gray-300 rounded mb-4"
           />
 
@@ -698,7 +697,7 @@ export default function Profile() {
             type="text"
             placeholder="City, Country"
             value={userProfile.location}
-            onChange={(e) => setProfile({ ...userProfile, location: e.target.value })}
+            onChange={(e) => setProfile({ ...userProfile, location: e.target.value } as UserProfile)}
             className="w-full p-2 border border-gray-300 rounded"
           />
         </div>
@@ -712,14 +711,14 @@ export default function Profile() {
             type="text"
             placeholder="e.g., Junior Software Developer | Tech Enthusiast"
             value={userProfile.headline}
-            onChange={(e) => setProfile({ ...userProfile, headline: e.target.value })}
+            onChange={(e) => setProfile({ ...userProfile, headline: e.target.value } as UserProfile)}
             className="w-full p-2 border border-gray-300 rounded mb-4"
           />
 
           <label className="block mb-2 font-semibold text-gray-700">Role</label>
           <select
             value={userProfile.roleTags[0] || 'jobseeker'}
-            onChange={(e) => setProfile({ ...userProfile, roleTags: [e.target.value] })}
+            onChange={(e) => setProfile({ ...userProfile, roleTags: [e.target.value] } as UserProfile)}
             className="w-full p-2 border border-gray-300 rounded mb-4"
           >
             <option value="jobseeker">Job Seeker</option>
@@ -733,7 +732,7 @@ export default function Profile() {
             type="text"
             placeholder="e.g., 2 years, Entry-level"
             value={userProfile.experience}
-            onChange={(e) => setProfile({ ...userProfile, experience: e.target.value })}
+            onChange={(e) => setProfile({ ...userProfile, experience: e.target.value } as UserProfile)}
             className="w-full p-2 border border-gray-300 rounded"
           />
         </div>
@@ -746,7 +745,7 @@ export default function Profile() {
           <textarea
             placeholder="Tell us about yourself, your career goals, and what you're looking for..."
             value={userProfile.bio || ''}
-            onChange={(e) => setProfile({ ...userProfile, bio: e.target.value })}
+            onChange={(e) => setProfile({ ...userProfile, bio: e.target.value } as UserProfile)}
             className="w-full p-2 border border-gray-300 rounded mb-4 min-h-24"
             maxLength={500}
           />
@@ -854,7 +853,7 @@ export default function Profile() {
             type="text"
             placeholder="e.g., Bachelor's in Computer Science, University Name"
             value={userProfile.education}
-            onChange={(e) => setProfile({ ...userProfile, education: e.target.value })}
+            onChange={(e) => setProfile({ ...userProfile, education: e.target.value } as UserProfile)}
             className="w-full p-2 border border-gray-300 rounded mb-4"
           />
 
@@ -863,7 +862,7 @@ export default function Profile() {
             type="url"
             placeholder="https://yourportfolio.com"
             value={userProfile.portfolio}
-            onChange={(e) => setProfile({ ...userProfile, portfolio: e.target.value })}
+            onChange={(e) => setProfile({ ...userProfile, portfolio: e.target.value } as UserProfile)}
             className="w-full p-2 border border-gray-300 rounded"
           />
         </div>

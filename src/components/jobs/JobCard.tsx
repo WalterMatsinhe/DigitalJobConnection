@@ -12,7 +12,7 @@ const jobImages: { [key: string]: string } = {
 
 export default function JobCard({ job }: { job: any }) {
   // Ensure we have a valid job ID
-  const jobId = job._id || job.id
+  const jobId = job._id
   if (!jobId) {
     console.error('JobCard: No valid job ID found', job)
     return null

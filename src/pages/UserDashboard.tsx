@@ -231,10 +231,10 @@ export default function UserDashboard() {
           ) : (
             <div className="space-y-4">
               {jobs.slice(0, 5).map((job) => {
-                const jobId = job._id || job.id
+                const jobId = job._id
                 return (
                   <div key={jobId} className="relative">
-                    <JobCard job={{...job, _id: jobId}} />
+                    <JobCard job={job} />
                     
                     {/* Apply Button Below Card */}
                     <div className="flex gap-2 mt-2 px-5">

@@ -191,10 +191,10 @@ export default function Jobs() {
           <p className="text-sm font-semibold text-gray-600 mb-6">Found <span className="text-gray-800">{filteredJobs.length}</span> job{filteredJobs.length !== 1 ? 's' : ''}</p>
           <div className="space-y-4">
             {filteredJobs.map((job: Job) => {
-              const jobId = job._id || job.id
+              const jobId = job._id
               return (
                 <div key={jobId} className="relative">
-                  <JobCard job={{...job, _id: jobId}} />
+                  <JobCard job={job} />
                   
                   {/* Action Buttons Below Card */}
                   <div className="flex gap-3 mt-2 px-5">
