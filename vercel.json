@@ -1,13 +1,10 @@
 {
   "buildCommand": "npm run build",
   "devCommand": "npm run dev",
-  "env": {
-    "MONGODB_URI": "@mongodb_uri"
-  },
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api/index.js"
+      "destination": "/api/handler.js"
     }
   ]
 }
