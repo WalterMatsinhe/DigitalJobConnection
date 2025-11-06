@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { Link } from 'react-router-dom'
 import JobCard from '../components/jobs/JobCard'
+import client from '../api/client'
 
 interface Job {
   _id: string
@@ -48,11 +49,10 @@ export default function UserDashboard() {
           return
         }
 
-        const response = await fetch(`/api/profile/user/${user.id}`)
-        const data = await response.json()
+        const response = await client.get(`/profile/user/${user.id}`)
         
-        if (data.success) {
-          setUserProfile(data.user)
+        if (response.data.success) {
+          setUserProfile(response.data.user)
         }
       } catch (err: any) {
         console.error('Error fetching profile:', err)
@@ -70,21 +70,19 @@ export default function UserDashboard() {
         setLoading(true)
         
         // Fetch all jobs
-        const jobsResponse = await fetch('/api/jobs')
-        const jobsData = await jobsResponse.json()
+        const jobsResponse = await client.get('/jobs')
         
-        if (jobsData.success) {
-          setJobs(jobsData.jobs || [])
+        if (jobsResponse.data.success) {
+          setJobs(jobsResponse.data.jobs || [])
         } else {
-          setError(jobsData.message || 'Failed to fetch jobs')
+          setError(jobsResponse.data.message || 'Failed to fetch jobs')
         }
 
         // Fetch user applications
-        const appsResponse = await fetch(`/api/applications/user/${user?.id}`)
-        const appsData = await appsResponse.json()
+        const appsResponse = await client.get(`/applications/user/${user?.id}`)
         
-        if (appsData.success) {
-          setApplications(appsData.applications || [])
+        if (appsResponse.data.success) {
+          setApplications(appsResponse.data.applications || [])
         }
       } catch (err: any) {
         setError(err.message || 'Error loading data')
@@ -102,12 +100,11 @@ export default function UserDashboard() {
   useEffect(() => {
     const handleFocus = async () => {
       try {
-        const appsResponse = await fetch(`/api/applications/user/${user?.id}`)
-        const appsData = await appsResponse.json()
+        const appsResponse = await client.get(`/applications/user/${user?.id}`)
         
-        if (appsData.success) {
-          setApplications(appsData.applications || [])
-          setAppliedJobs(new Set(appsData.applications.map((a: any) => a.jobId)))
+        if (appsResponse.data.success) {
+          setApplications(appsResponse.data.applications || [])
+          setAppliedJobs(new Set(appsResponse.data.applications.map((a: any) => a.jobId)))
         }
       } catch (err) {
         console.error('Error refetching applications:', err)
@@ -127,34 +124,25 @@ export default function UserDashboard() {
         return
       }
 
-      const response = await fetch('/api/applications', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          jobId,
-          userId: user?.id,
-          userName: user?.name,
-          userEmail: user?.email,
-          coverLetter: ''
-        })
+      const response = await client.post('/applications', {
+        jobId,
+        userId: user?.id,
+        userName: user?.name,
+        userEmail: user?.email,
+        coverLetter: ''
       })
 
-      const data = await response.json()
-
-      if (data.success) {
+      if (response.data.success) {
         setAppliedJobs(new Set([...appliedJobs, jobId]))
         addToast('Application submitted successfully!', 'success', 2000)
         
         // Refetch applications to update the list
-        const appsResponse = await fetch(`/api/applications/user/${user?.id}`)
-        const appsData = await appsResponse.json()
-        if (appsData.success) {
-          setApplications(appsData.applications || [])
+        const appsResponse = await client.get(`/applications/user/${user?.id}`)
+        if (appsResponse.data.success) {
+          setApplications(appsResponse.data.applications || [])
         }
       } else {
-        addToast(data.message || 'Failed to apply for job', 'error')
+        addToast(response.data.message || 'Failed to apply for job', 'error')
       }
     } catch (err: any) {
       addToast(err.message || 'Error applying for job', 'error')

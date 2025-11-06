@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
+import client from '../api/client'
 
 interface Job {
   _id: string
@@ -32,8 +33,8 @@ export default function JobDetail() {
       try {
         setLoading(true)
         console.log('🔍 JobDetail: Fetching job with ID:', id)
-        const response = await fetch(`/api/jobs/${id}`)
-        const data = await response.json()
+        const response = await client.get(`/jobs/${id}`)
+        const data = response.data
         console.log('📦 JobDetail: API Response:', data)
         
         if (data.success) {
@@ -41,8 +42,8 @@ export default function JobDetail() {
           
           // Check if user has already applied
           if (user?.id && user?.role === 'user') {
-            const appsResponse = await fetch(`/api/applications/user/${user.id}`)
-            const appsData = await appsResponse.json()
+            const appsResponse = await client.get(`/applications/user/${user.id}`)
+            const appsData = appsResponse.data
             if (appsData.success) {
               const applied = appsData.applications.some((a: any) => a.jobId === id)
               setHasApplied(applied)
@@ -80,21 +81,15 @@ export default function JobDetail() {
     }
 
     try {
-      const response = await fetch('/api/applications', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          jobId: job?._id,
-          userId: user.id,
-          userName: user.name,
-          userEmail: user.email,
-          coverLetter: ''
-        })
+      const response = await client.post('/applications', {
+        jobId: job?._id,
+        userId: user.id,
+        userName: user.name,
+        userEmail: user.email,
+        coverLetter: ''
       })
 
-      const data = await response.json()
+      const data = response.data
 
       if (data.success) {
         setHasApplied(true)

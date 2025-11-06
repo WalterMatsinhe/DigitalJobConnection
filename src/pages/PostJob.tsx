@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import client from '../api/client'
 
 interface JobPosting {
   id: string
@@ -46,11 +47,10 @@ export default function PostJob() {
       const fetchJob = async () => {
         try {
           setLoadingJob(true)
-          const response = await fetch(`/api/jobs/${editJobId}`)
-          const data = await response.json()
+          const response = await client.get(`/jobs/${editJobId}`)
           
-          if (data.success) {
-            const job = data.job
+          if (response.data.success) {
+            const job = response.data.job
             setFormData({
               title: job.title || '',
               company: job.company || user?.companyName || '',
@@ -121,25 +121,24 @@ export default function PostJob() {
     }
 
     try {
-      const url = editJobId ? `/api/jobs/${editJobId}` : '/api/jobs'
-      const method = editJobId ? 'PUT' : 'POST'
+      const url = editJobId ? `/jobs/${editJobId}` : '/jobs'
       
       // Post to backend
-      const response = await fetch(url, {
-        method: method,
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          ...formData,
-          companyId: user?.id,
-          company: formData.company
-        })
-      })
+      const response = editJobId 
+        ? await client.put(url, {
+            ...formData,
+            companyId: user?.id,
+            company: formData.company
+          })
+        : await client.post(url, {
+            ...formData,
+            companyId: user?.id,
+            company: formData.company
+          })
 
-      const data = await response.json()
+      const data = response.data
 
-      if (!response.ok) {
+      if (!data.success) {
         throw new Error(data.message || 'Failed to save job')
       }
 

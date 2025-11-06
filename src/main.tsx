@@ -5,11 +5,11 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import './index.css'
 
-// Start MSW in development
-if (import.meta.env.DEV) {
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
-  import('./mocks/browser').then(({ worker }) => worker.start())
-}
+// MSW disabled - using real backend instead
+// if (import.meta.env.DEV) {
+//   // eslint-disable-next-line @typescript-eslint/no-floating-promises
+//   import('./mocks/browser').then(({ worker }) => worker.start())
+// }
 
 const queryClient = new QueryClient()
 

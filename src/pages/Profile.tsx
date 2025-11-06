@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
+import client from '../api/client'
 
 interface UserProfile {
   name: string
@@ -62,11 +63,11 @@ export default function Profile() {
         }
 
         const endpoint = isCompany 
-          ? `/api/profile/company/${user.id}` 
-          : `/api/profile/user/${user.id}`
+          ? `/profile/company/${user.id}` 
+          : `/profile/user/${user.id}`
         
-        const response = await fetch(endpoint)
-        const data = await response.json()
+        const response = await client.get(endpoint)
+        const data = response.data
         
         if (data.success) {
           const profileData = data.user || data.company
@@ -189,21 +190,15 @@ export default function Profile() {
         
         try {
           const endpoint = isLogo
-            ? `/api/upload/logo/${user.id}`
-            : `/api/upload/avatar/${user.id}`
+            ? `/upload/logo/${user.id}`
+            : `/upload/avatar/${user.id}`
 
-          const response = await fetch(endpoint, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              imageData: imageData,
-              imageType: file.type
-            })
+          const response = await client.post(endpoint, {
+            imageData: imageData,
+            imageType: file.type
           })
 
-          const data = await response.json()
+          const data = response.data
 
           if (data.success) {
             // Update local profile with the uploaded image
@@ -264,19 +259,13 @@ export default function Profile() {
         try {
           const cvData = reader.result as string
 
-          const response = await fetch(`/api/upload/cv/${user.id}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              cvData: cvData,
-              cvType: file.type,
-              cvName: file.name
-            })
+          const response = await client.post(`/upload/cv/${user.id}`, {
+            cvData: cvData,
+            cvType: file.type,
+            cvName: file.name
           })
 
-          const data = await response.json()
+          const data = response.data
 
           if (data.success) {
             // Update local profile with the uploaded CV
@@ -318,18 +307,12 @@ export default function Profile() {
       }
 
       const endpoint = isCompany 
-        ? `/api/profile/company/${user.id}` 
-        : `/api/profile/user/${user.id}`
+        ? `/profile/company/${user.id}` 
+        : `/profile/user/${user.id}`
       
-      const response = await fetch(endpoint, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(dataToSend)
-      })
+      const response = await client.put(endpoint, dataToSend)
 
-      const data = await response.json()
+      const data = response.data
 
       if (data.success) {
         setSaved(true)

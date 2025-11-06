@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import JobCard from '../components/jobs/JobCard'
+import client from '../api/client'
 
 interface Job {
   _id: string
@@ -30,13 +31,12 @@ export default function Jobs() {
     const fetchJobs = async () => {
       try {
         setLoading(true)
-        const response = await fetch('/api/jobs')
-        const data = await response.json()
+        const response = await client.get('/jobs')
         
-        if (data.success) {
-          setJobs(data.jobs || [])
+        if (response.data.success) {
+          setJobs(response.data.jobs || [])
         } else {
-          setError(data.message || 'Failed to fetch jobs')
+          setError(response.data.message || 'Failed to fetch jobs')
         }
       } catch (err: any) {
         setError(err.message || 'Error loading jobs')
@@ -53,11 +53,10 @@ export default function Jobs() {
     if (user?.id && user?.role === 'user') {
       const fetchApplications = async () => {
         try {
-          const response = await fetch(`/api/applications/user/${user.id}`)
-          const data = await response.json()
+          const response = await client.get(`/applications/user/${user.id}`)
           
-          if (data.success) {
-            setAppliedJobs(new Set(data.applications.map((a: any) => a.jobId)))
+          if (response.data.success) {
+            setAppliedJobs(new Set(response.data.applications.map((a: any) => a.jobId)))
           }
         } catch (err) {
           console.error('Error fetching applications:', err)
@@ -94,34 +93,25 @@ export default function Jobs() {
     }
 
     try {
-      const response = await fetch('/api/applications', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          jobId,
-          userId: user.id,
-          userName: user.name,
-          userEmail: user.email,
-          coverLetter: ''
-        })
+      const response = await client.post('/applications', {
+        jobId,
+        userId: user.id,
+        userName: user.name,
+        userEmail: user.email,
+        coverLetter: ''
       })
 
-      const data = await response.json()
-
-      if (data.success) {
+      if (response.data.success) {
         setAppliedJobs(new Set([...appliedJobs, jobId]))
         alert('Application submitted successfully!')
         
         // Refetch applications to keep UI in sync
-        const appsResponse = await fetch(`/api/applications/user/${user.id}`)
-        const appsData = await appsResponse.json()
-        if (appsData.success) {
-          setAppliedJobs(new Set(appsData.applications.map((a: any) => a.jobId)))
+        const appsResponse = await client.get(`/applications/user/${user.id}`)
+        if (appsResponse.data.success) {
+          setAppliedJobs(new Set(appsResponse.data.applications.map((a: any) => a.jobId)))
         }
       } else {
-        alert(data.message || 'Failed to apply for job')
+        alert(response.data.message || 'Failed to apply for job')
       }
     } catch (err: any) {
       alert(err.message || 'Error applying for job')

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { Link, useNavigate } from 'react-router-dom'
 import ApplicationsModal from '../components/ApplicationsModal'
+import client from '../api/client'
 
 interface Job {
   _id: string
@@ -50,11 +51,10 @@ export default function CompanyDashboard() {
           return
         }
 
-        const response = await fetch(`/api/profile/company/${user.id}`)
-        const data = await response.json()
+        const response = await client.get(`/profile/company/${user.id}`)
         
-        if (data.success) {
-          setCompanyProfile(data.company)
+        if (response.data.success) {
+          setCompanyProfile(response.data.company)
         }
       } catch (err: any) {
         console.error('Error fetching profile:', err)
@@ -70,13 +70,12 @@ export default function CompanyDashboard() {
     const fetchJobs = async () => {
       try {
         setLoading(true)
-        const response = await fetch(`/api/jobs/company/${user?.id}`)
-        const data = await response.json()
+        const response = await client.get(`/jobs/company/${user?.id}`)
         
-        if (data.success) {
-          setJobs(data.jobs || [])
+        if (response.data.success) {
+          setJobs(response.data.jobs || [])
         } else {
-          setError(data.message || 'Failed to fetch jobs')
+          setError(response.data.message || 'Failed to fetch jobs')
         }
       } catch (err: any) {
         setError(err.message || 'Error loading jobs')
@@ -94,11 +93,10 @@ export default function CompanyDashboard() {
   useEffect(() => {
     const handleFocus = async () => {
       try {
-        const response = await fetch(`/api/jobs/company/${user?.id}`)
-        const data = await response.json()
+        const response = await client.get(`/jobs/company/${user?.id}`)
         
-        if (data.success) {
-          setJobs(data.jobs || [])
+        if (response.data.success) {
+          setJobs(response.data.jobs || [])
         }
       } catch (err) {
         console.error('Error refetching jobs:', err)

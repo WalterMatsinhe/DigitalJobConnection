@@ -2,31 +2,36 @@ const express = require('express')
 const mongoose = require('mongoose')
 const cors = require('cors')
 const dotenv = require('dotenv')
-const path = require('path')
 
-dotenv.config({ path: path.resolve(__dirname, '.env') })
+// Load environment variables
+dotenv.config()
 
 const app = express()
-// Increase payload size limit to handle large image uploads
+
+// Middleware
 app.use(express.json({ limit: '50mb' }))
 app.use(express.urlencoded({ limit: '50mb', extended: true }))
 app.use(cors())
 
-const PORT = process.env.PORT || 4000
 const MONGODB_URI = process.env.MONGODB_URI
 
-if (MONGODB_URI) {
-  console.log('Connecting to MongoDB...')
-  mongoose.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-    .then(() => console.log('✓ Connected to MongoDB'))
-    .catch((err) => {
-      console.error('✗ MongoDB connection error:', err.message)
-      console.warn('Server will start but DB operations will fail. Check your MONGODB_URI.')
-    })
-} else {
-  console.log('ℹ️  MONGODB_URI not set - using in-memory storage for development')
+if (!MONGODB_URI) {
+  console.error('MONGODB_URI not set in environment variables')
 }
 
+// Connect to MongoDB
+if (MONGODB_URI && mongoose.connection.readyState === 0) {
+  mongoose.connect(MONGODB_URI, { 
+    useNewUrlParser: true, 
+    useUnifiedTopology: true,
+    connectTimeoutMS: 10000,
+    serverSelectionTimeoutMS: 10000
+  })
+    .then(() => console.log('✓ Connected to MongoDB'))
+    .catch((err) => console.error('✗ MongoDB connection error:', err.message))
+}
+
+// Import models
 const User = require('./models/User')
 const Company = require('./models/Company')
 const Job = require('./models/Job')
@@ -34,19 +39,14 @@ const Application = require('./models/Application')
 const bcrypt = require('bcryptjs')
 const mockDb = require('./mockDb')
 
-mongoose.connection.on('connected', () => {
-  console.log('✓ Using MongoDB')
-})
+// ============ ROUTES ============
 
-mongoose.connection.on('disconnected', () => {
-  console.log('⚠ Using in-memory storage (MongoDB not available)')
-})
-
-// Health check endpoint
+// Health check
 app.get('/api/health', (req, res) => {
   res.json({ success: true, message: 'Server is running', timestamp: new Date() })
 })
 
+// Register endpoint
 app.post('/api/register', async (req, res) => {
   try {
     console.log('📨 Register request:', { email: req.body.email, role: req.body.role })
@@ -111,11 +111,11 @@ app.post('/api/register', async (req, res) => {
     }
   } catch (err) {
     console.error('❌ Register error:', err.message)
-    console.error('Stack:', err.stack)
     return res.status(500).json({ success: false, message: 'Server error: ' + err.message })
   }
 })
 
+// Login endpoint
 app.post('/api/login', async (req, res) => {
   try {
     console.log('📨 Login request:', { email: req.body.email })
@@ -128,7 +128,6 @@ app.post('/api/login', async (req, res) => {
 
     if (isMongoConnected) {
       console.log('🔍 Checking MongoDB for company...')
-      // Try to find in Company collection first
       account = await Company.findOne({ email })
       if (account) {
         const isMatch = await bcrypt.compare(password, account.password)
@@ -137,7 +136,6 @@ app.post('/api/login', async (req, res) => {
       }
 
       console.log('🔍 Checking MongoDB for user...')
-      // Try to find in User collection
       account = await User.findOne({ email })
       if (account) {
         const isMatch = await bcrypt.compare(password, account.password)
@@ -146,10 +144,8 @@ app.post('/api/login', async (req, res) => {
       }
     } else {
       console.log('🔍 Checking mock storage...')
-      // Try mock storage
       dbSource = 'in-memory'
       
-      // Check companies first
       account = mockDb.getCompany(email)
       if (account) {
         const isMatch = await bcrypt.compare(password, account.password)
@@ -157,7 +153,6 @@ app.post('/api/login', async (req, res) => {
         return res.json({ success: true, message: 'Login successful (' + dbSource + ')', user: { id: account.id, email: account.email, name: account.name, companyName: account.companyName, role: 'company' } })
       }
 
-      // Check users
       account = mockDb.getUser(email)
       if (account) {
         const isMatch = await bcrypt.compare(password, account.password)
@@ -169,18 +164,61 @@ app.post('/api/login', async (req, res) => {
     return res.status(401).json({ success: false, message: 'Invalid credentials' })
   } catch (err) {
     console.error('❌ Login error:', err.message)
-    console.error('Stack:', err.stack)
     return res.status(500).json({ success: false, message: 'Server error: ' + err.message })
   }
 })
 
-// POST JOB ENDPOINT
+// GET ALL JOBS
+app.get('/api/jobs', async (req, res) => {
+  try {
+    console.log('🔍 Fetching all jobs...')
+    
+    if (mongoose.connection.readyState === 1) {
+      console.log('📦 Getting jobs from MongoDB...')
+      const jobs = await Job.find({ status: 'Active' })
+        .populate('companyId', 'logo companyName')
+        .sort({ createdAt: -1 })
+      
+      const jobsWithLogos = jobs.map(job => {
+        const jobObj = job.toObject ? job.toObject() : job
+        if (!jobObj.companyId) {
+          jobObj.companyId = { _id: null, logo: null, companyName: 'Unknown Company' }
+        } else if (!jobObj.companyId.logo) {
+          jobObj.companyId.logo = null
+        }
+        return jobObj
+      })
+      
+      return res.json({ success: true, jobs: jobsWithLogos })
+    } else {
+      console.log('📦 Getting jobs from mock storage...')
+      const jobs = mockDb.getAllJobs()
+      
+      const jobsWithCompany = jobs.map(job => {
+        if (job.companyId && typeof job.companyId === 'string') {
+          const company = mockDb.getCompanyById(job.companyId)
+          return {
+            ...job,
+            companyId: company ? { _id: company._id, logo: company.logo, companyName: company.companyName } : null
+          }
+        }
+        return job
+      })
+      
+      return res.json({ success: true, jobs: jobsWithCompany })
+    }
+  } catch (err) {
+    console.error('❌ Fetch jobs error:', err.message)
+    return res.status(500).json({ success: false, message: 'Server error: ' + err.message })
+  }
+})
+
+// POST JOB
 app.post('/api/jobs', async (req, res) => {
   try {
     console.log('📝 Post job request:', { title: req.body.title })
     const { title, description, requirements, company, companyId, location, jobType, sector, salary, deadline } = req.body
     
-    // Validation
     if (!title || !description || !requirements || !company || !companyId || !location || !deadline) {
       return res.status(400).json({ success: false, message: 'All required fields must be provided' })
     }
@@ -217,54 +255,41 @@ app.post('/api/jobs', async (req, res) => {
   }
 })
 
-// GET ALL JOBS ENDPOINT
-app.get('/api/jobs', async (req, res) => {
+// GET SINGLE JOB
+app.get('/api/jobs/:jobId', async (req, res) => {
   try {
-    console.log('🔍 Fetching all jobs...')
+    const { jobId } = req.params
+    console.log('🔍 Fetching job:', jobId)
     
     if (mongoose.connection.readyState === 1) {
-      console.log('📦 Getting jobs from MongoDB...')
-      const jobs = await Job.find({ status: 'Active' })
+      console.log('📦 Getting job from MongoDB...')
+      const job = await Job.findById(jobId)
         .populate('companyId', 'logo companyName')
-        .sort({ createdAt: -1 })
-      
-      // Ensure each job has a valid company object with logo
-      const jobsWithLogos = jobs.map(job => {
-        const jobObj = job.toObject ? job.toObject() : job
-        if (!jobObj.companyId) {
-          jobObj.companyId = { _id: null, logo: null, companyName: 'Unknown Company' }
-        } else if (!jobObj.companyId.logo) {
-          jobObj.companyId.logo = null
-        }
-        return jobObj
-      })
-      
-      return res.json({ success: true, jobs: jobsWithLogos })
+      if (!job) {
+        return res.status(404).json({ success: false, message: 'Job not found' })
+      }
+      return res.json({ success: true, job })
     } else {
-      console.log('📦 Getting jobs from mock storage...')
-      const jobs = mockDb.getAllJobs()
+      console.log('📦 Getting job from mock storage...')
+      const job = mockDb.getJob(jobId)
+      if (!job) {
+        return res.status(404).json({ success: false, message: 'Job not found' })
+      }
       
-      // Populate company data for mock jobs
-      const jobsWithCompany = jobs.map(job => {
-        if (job.companyId && typeof job.companyId === 'string') {
-          const company = mockDb.getCompanyById(job.companyId)
-          return {
-            ...job,
-            companyId: company ? { _id: company._id, logo: company.logo, companyName: company.companyName } : null
-          }
-        }
-        return job
-      })
+      if (job.companyId && typeof job.companyId === 'string') {
+        const company = mockDb.getCompanyById(job.companyId)
+        job.companyId = company ? { _id: company._id, logo: company.logo, companyName: company.companyName } : null
+      }
       
-      return res.json({ success: true, jobs: jobsWithCompany })
+      return res.json({ success: true, job })
     }
   } catch (err) {
-    console.error('❌ Fetch jobs error:', err.message)
+    console.error('❌ Fetch job error:', err.message)
     return res.status(500).json({ success: false, message: 'Server error: ' + err.message })
   }
 })
 
-// GET JOBS BY COMPANY ENDPOINT
+// GET JOBS BY COMPANY
 app.get('/api/jobs/company/:companyId', async (req, res) => {
   try {
     const { companyId } = req.params
@@ -280,7 +305,6 @@ app.get('/api/jobs/company/:companyId', async (req, res) => {
       console.log('📦 Getting company jobs from mock storage...')
       const jobs = mockDb.getJobsByCompany(companyId)
       
-      // Populate company data for mock jobs
       const jobsWithCompany = jobs.map(job => {
         if (job.companyId && typeof job.companyId === 'string') {
           const company = mockDb.getCompanyById(job.companyId)
@@ -300,46 +324,7 @@ app.get('/api/jobs/company/:companyId', async (req, res) => {
   }
 })
 
-// GET SINGLE JOB ENDPOINT
-app.get('/api/jobs/:jobId', async (req, res) => {
-  try {
-    const { jobId } = req.params
-    console.log('🔍 Fetching job:', jobId, 'Type:', typeof jobId)
-    
-    if (mongoose.connection.readyState === 1) {
-      console.log('📦 Getting job from MongoDB...')
-      const job = await Job.findById(jobId)
-        .populate('companyId', 'logo companyName')
-      if (!job) {
-        console.log('❌ Job not found in MongoDB:', jobId)
-        return res.status(404).json({ success: false, message: 'Job not found' })
-      }
-      return res.json({ success: true, job })
-    } else {
-      console.log('📦 Getting job from mock storage...')
-      console.log('Available jobs in mock storage:', Array.from(mockDb.jobs.keys()))
-      const job = mockDb.getJob(jobId)
-      console.log('Found job:', job)
-      if (!job) {
-        console.log('❌ Job not found in mock storage:', jobId)
-        return res.status(404).json({ success: false, message: 'Job not found' })
-      }
-      
-      // Populate company data for mock job
-      if (job.companyId && typeof job.companyId === 'string') {
-        const company = mockDb.getCompanyById(job.companyId)
-        job.companyId = company ? { _id: company._id, logo: company.logo, companyName: company.companyName } : null
-      }
-      
-      return res.json({ success: true, job })
-    }
-  } catch (err) {
-    console.error('❌ Fetch job error:', err.message)
-    return res.status(500).json({ success: false, message: 'Server error: ' + err.message })
-  }
-})
-
-// APPLY FOR JOB ENDPOINT
+// APPLY FOR JOB
 app.post('/api/applications', async (req, res) => {
   try {
     console.log('📨 Apply for job request:', { jobId: req.body.jobId, userId: req.body.userId })
@@ -363,7 +348,6 @@ app.post('/api/applications', async (req, res) => {
       const application = new Application(applicationData)
       await application.save()
       
-      // Update job with application
       await Job.findByIdAndUpdate(jobId, {
         $push: { applications: application._id }
       })
@@ -381,7 +365,7 @@ app.post('/api/applications', async (req, res) => {
   }
 })
 
-// GET APPLICATIONS FOR JOB ENDPOINT
+// GET APPLICATIONS FOR JOB
 app.get('/api/applications/job/:jobId', async (req, res) => {
   try {
     const { jobId } = req.params
@@ -408,7 +392,7 @@ app.get('/api/applications/job/:jobId', async (req, res) => {
   }
 })
 
-// GET APPLICATIONS FOR USER ENDPOINT
+// GET APPLICATIONS FOR USER
 app.get('/api/applications/user/:userId', async (req, res) => {
   try {
     const { userId } = req.params
@@ -429,7 +413,7 @@ app.get('/api/applications/user/:userId', async (req, res) => {
   }
 })
 
-// UPDATE APPLICATION STATUS ENDPOINT
+// UPDATE APPLICATION STATUS
 app.patch('/api/applications/:applicationId', async (req, res) => {
   try {
     const { applicationId } = req.params
@@ -467,7 +451,7 @@ app.patch('/api/applications/:applicationId', async (req, res) => {
   }
 })
 
-// UPDATE JOB ENDPOINT
+// UPDATE JOB
 app.put('/api/jobs/:jobId', async (req, res) => {
   try {
     const { jobId } = req.params
@@ -491,7 +475,7 @@ app.put('/api/jobs/:jobId', async (req, res) => {
   }
 })
 
-// DELETE JOB ENDPOINT
+// DELETE JOB
 app.delete('/api/jobs/:jobId', async (req, res) => {
   try {
     const { jobId } = req.params
@@ -513,7 +497,7 @@ app.delete('/api/jobs/:jobId', async (req, res) => {
   }
 })
 
-// GET USER PROFILE ENDPOINT
+// GET USER PROFILE
 app.get('/api/profile/user/:userId', async (req, res) => {
   try {
     const { userId } = req.params
@@ -537,7 +521,7 @@ app.get('/api/profile/user/:userId', async (req, res) => {
   }
 })
 
-// GET COMPANY PROFILE ENDPOINT
+// GET COMPANY PROFILE
 app.get('/api/profile/company/:companyId', async (req, res) => {
   try {
     const { companyId } = req.params
@@ -561,18 +545,16 @@ app.get('/api/profile/company/:companyId', async (req, res) => {
   }
 })
 
-// UPDATE USER PROFILE ENDPOINT
+// UPDATE USER PROFILE
 app.put('/api/profile/user/:userId', async (req, res) => {
   try {
     const { userId } = req.params
     const updateData = req.body
     console.log('✏️ Updating user profile:', userId)
     
-    // Remove sensitive fields
     delete updateData.password
     delete updateData.email
     delete updateData.role
-    
     updateData.updatedAt = new Date()
     
     if (mongoose.connection.readyState === 1) {
@@ -593,18 +575,16 @@ app.put('/api/profile/user/:userId', async (req, res) => {
   }
 })
 
-// UPDATE COMPANY PROFILE ENDPOINT
+// UPDATE COMPANY PROFILE
 app.put('/api/profile/company/:companyId', async (req, res) => {
   try {
     const { companyId } = req.params
     const updateData = req.body
     console.log('✏️ Updating company profile:', companyId)
     
-    // Remove sensitive fields
     delete updateData.password
     delete updateData.email
     delete updateData.role
-    
     updateData.updatedAt = new Date()
     
     if (mongoose.connection.readyState === 1) {
@@ -625,7 +605,7 @@ app.put('/api/profile/company/:companyId', async (req, res) => {
   }
 })
 
-// UPLOAD PROFILE IMAGE ENDPOINT
+// UPLOAD AVATAR
 app.post('/api/upload/avatar/:userId', async (req, res) => {
   try {
     const { userId } = req.params
@@ -658,7 +638,7 @@ app.post('/api/upload/avatar/:userId', async (req, res) => {
   }
 })
 
-// UPLOAD COMPANY LOGO ENDPOINT
+// UPLOAD LOGO
 app.post('/api/upload/logo/:companyId', async (req, res) => {
   try {
     const { companyId } = req.params
@@ -691,7 +671,7 @@ app.post('/api/upload/logo/:companyId', async (req, res) => {
   }
 })
 
-// UPLOAD CV ENDPOINT
+// UPLOAD CV
 app.post('/api/upload/cv/:userId', async (req, res) => {
   try {
     const { userId } = req.params
@@ -724,6 +704,4 @@ app.post('/api/upload/cv/:userId', async (req, res) => {
   }
 })
 
-app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`)
-})
+module.exports = app
