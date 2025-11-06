@@ -2,17 +2,17 @@ import { rest, RestRequest, ResponseComposition, RestContext } from 'msw'
 import seed from './seed/seedData.json'
 
 // Mock database for auth
-const mockUsers: any = {}
-const mockCompanies: any = {}
-const mockJobs: any = seed.jobs.reduce((acc: any, job: any) => {
-  acc[job.id] = job
+const mockUsers: Record<string, any> = {}
+const mockCompanies: Record<string, any> = {}
+const mockJobs: Record<string, any> = seed.jobs.reduce((acc: Record<string, any>, job: any) => {
+  acc[job.id] = { ...job, _id: job.id } // Ensure both id and _id are set
   return acc
 }, {})
 
 export const handlers = [
   // ============ AUTH ENDPOINTS ============
-  rest.post('/api/register', (req: RestRequest, res: ResponseComposition, ctx: RestContext) => {
-    const { name, email, password, role, companyName } = req.body
+  rest.post('/api/register', async (req: RestRequest, res: ResponseComposition, ctx: RestContext) => {
+    const { name, email, password, role, companyName } = await req.json()
 
     if (!email || !password) {
       return res(ctx.status(400), ctx.json({ success: false, message: 'Email and password required' }))
@@ -53,8 +53,8 @@ export const handlers = [
     }
   }),
 
-  rest.post('/api/login', (req: RestRequest, res: ResponseComposition, ctx: RestContext) => {
-    const { email, password } = req.body
+  rest.post('/api/login', async (req: RestRequest, res: ResponseComposition, ctx: RestContext) => {
+    const { email, password } = await req.json()
 
     if (!email || !password) {
       return res(ctx.status(400), ctx.json({ success: false, message: 'Email and password required' }))
@@ -108,8 +108,10 @@ export const handlers = [
   }),
 
   rest.get('/api/jobs/:id', (req: RestRequest, res: ResponseComposition, ctx: RestContext) => {
-    const { id } = req.params
-    const job = mockJobs[id]
+    const { id } = req.params as { id: string }
+    // Try to find by id first, then by _id
+    const jobsList = Object.values(mockJobs) as any[]
+    let job = mockJobs[id as string] || jobsList.find((j: any) => j && j._id === id)
 
     if (!job) {
       return res(ctx.status(404), ctx.json({ success: false, message: 'Job not found' }))
@@ -118,8 +120,8 @@ export const handlers = [
     return res(ctx.status(200), ctx.json({ success: true, job }))
   }),
 
-  rest.post('/api/jobs', (req: RestRequest, res: ResponseComposition, ctx: RestContext) => {
-    const { title, description, companyId } = req.body
+  rest.post('/api/jobs', async (req: RestRequest, res: ResponseComposition, ctx: RestContext) => {
+    const { title, description, companyId } = await req.json()
 
     const job = {
       _id: Date.now().toString(),
@@ -156,35 +158,37 @@ export const handlers = [
     return res(ctx.status(200), ctx.json({ success: true, company }))
   }),
 
-  rest.put('/api/profile/user/:userId', (req: RestRequest, res: ResponseComposition, ctx: RestContext) => {
+  rest.put('/api/profile/user/:userId', async (req: RestRequest, res: ResponseComposition, ctx: RestContext) => {
     const user = Object.values(mockUsers).find((u: any) => u._id === req.params.userId)
 
     if (!user) {
       return res(ctx.status(404), ctx.json({ success: false, message: 'User not found' }))
     }
 
-    const updated = { ...user, ...req.body }
+    const body = await req.json()
+    const updated = { ...user, ...body }
     mockUsers[updated.email] = updated
 
     return res(ctx.status(200), ctx.json({ success: true, message: 'Profile updated', user: updated }))
   }),
 
-  rest.put('/api/profile/company/:companyId', (req: RestRequest, res: ResponseComposition, ctx: RestContext) => {
+  rest.put('/api/profile/company/:companyId', async (req: RestRequest, res: ResponseComposition, ctx: RestContext) => {
     const company = Object.values(mockCompanies).find((c: any) => c._id === req.params.companyId)
 
     if (!company) {
       return res(ctx.status(404), ctx.json({ success: false, message: 'Company not found' }))
     }
 
-    const updated = { ...company, ...req.body }
+    const body = await req.json()
+    const updated = { ...company, ...body }
     mockCompanies[updated.email] = updated
 
     return res(ctx.status(200), ctx.json({ success: true, message: 'Profile updated', company: updated }))
   }),
 
   // ============ APPLICATION ENDPOINTS ============
-  rest.post('/api/applications', (req: RestRequest, res: ResponseComposition, ctx: RestContext) => {
-    const { jobId, userId } = req.body
+  rest.post('/api/applications', async (req: RestRequest, res: ResponseComposition, ctx: RestContext) => {
+    const { jobId, userId } = await req.json()
 
     const application = {
       _id: Date.now().toString(),
