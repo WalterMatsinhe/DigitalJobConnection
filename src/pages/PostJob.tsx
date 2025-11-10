@@ -119,22 +119,39 @@ export default function PostJob() {
       setLoading(false)
       return
     }
+    
+    // Check if user has companyId
+    if (!user?.id) {
+      setError('User ID not found. Please log in again.')
+      setLoading(false)
+      return
+    }
 
     try {
       const url = editJobId ? `/jobs/${editJobId}` : '/jobs'
       
+      // Format deadline to ISO string if it's just a date
+      const deadlineDate = new Date(formData.deadline)
+      
+      const payload = {
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        requirements: formData.requirements.trim(),
+        company: formData.company.trim(),
+        companyId: user.id,
+        location: formData.location.trim(),
+        jobType: formData.jobType,
+        sector: formData.sector,
+        salary: formData.salary.trim(),
+        deadline: deadlineDate.toISOString()
+      }
+      
+      console.log('📝 Sending job payload:', payload)
+      
       // Post to backend
       const response = editJobId 
-        ? await client.put(url, {
-            ...formData,
-            companyId: user?.id,
-            company: formData.company
-          })
-        : await client.post(url, {
-            ...formData,
-            companyId: user?.id,
-            company: formData.company
-          })
+        ? await client.put(url, payload)
+        : await client.post(url, payload)
 
       const data = response.data
 
