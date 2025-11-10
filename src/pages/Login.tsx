@@ -22,33 +22,49 @@ export default function Login() {
     
     // Validate inputs
     if (!email.trim() || !password.trim()) {
-      setError('Please enter email and password')
+      const msg = 'Please enter email and password'
+      setError(msg)
+      addToast(msg, 'error')
       setLoading(false)
       return
     }
     
     try {
-      console.log('📝 Login attempt:', { email })
-      const res = await client.post('/login', { email: email.trim(), password })
+      console.log('📝 Login attempt with email:', email.trim())
+      const res = await client.post('/login', { 
+        email: email.trim(), 
+        password 
+      })
       console.log('✅ Login response:', res.data)
       
-      if (res.data?.success) {
-        addToast('Login successful!', 'success', 1200)
-        // Store user in context
-        if (res.data.user) {
-          login(res.data.user)
-          // Redirect to intended page or dashboard
-          setTimeout(() => {
-            navigate(redirectTo || (res.data.user.role === 'company' ? '/company-dashboard' : '/user-dashboard'))
-          }, 1200)
-        }
+      if (res.data?.success && res.data?.user) {
+        addToast('✓ Login successful!', 'success')
+        login(res.data.user)
+        
+        // Redirect after a short delay
+        setTimeout(() => {
+          const destination = redirectTo || (res.data.user.role === 'company' ? '/company-dashboard' : '/user-dashboard')
+          navigate(destination)
+        }, 500)
       } else {
-        setError(res.data?.message || 'Login failed')
+        const errorMessage = res.data?.message || 'Login failed'
+        setError(errorMessage)
+        addToast('✗ ' + errorMessage, 'error')
       }
     } catch (err: any) {
-      console.error('❌ Login error:', err)
-      const errorMsg = err?.response?.data?.message || err?.message || 'Server error'
-      setError(errorMsg)
+      let errorMessage = 'Server error'
+      
+      if (err?.response?.status === 401) {
+        errorMessage = 'Invalid email or password'
+      } else if (err?.response?.data?.message) {
+        errorMessage = err.response.data.message
+      } else if (err?.message) {
+        errorMessage = err.message
+      }
+      
+      console.error('❌ Login error:', errorMessage)
+      setError(errorMessage)
+      addToast('✗ ' + errorMessage, 'error')
     } finally {
       setLoading(false)
     }
