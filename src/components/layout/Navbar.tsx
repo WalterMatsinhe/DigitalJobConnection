@@ -15,7 +15,7 @@ export default function Navbar() {
   return (
     <header className="bg-gradient-to-r from-gray-800 to-gray-900 text-white shadow-lg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-20 gap-4 sm:flex justify-">
+        <div className="flex justify-between items-center h-20 gap-4 sm:gap-6">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 group flex-shrink-0">
             <span 
