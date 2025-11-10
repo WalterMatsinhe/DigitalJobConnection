@@ -306,13 +306,25 @@ app.get('/api/jobs/company/:companyId', async (req, res) => {
     
     if (mongoose.connection.readyState === 1) {
       console.log('📦 Getting company jobs from MongoDB...')
-      const jobs = await Job.find({ companyId })
-        .populate('companyId', 'logo companyName')
-        .sort({ createdAt: -1 })
-      return res.json({ success: true, jobs })
+      try {
+        // Try to convert to ObjectId if it looks like one
+        const mongoose_ObjectId = mongoose.Types.ObjectId.isValid(companyId) ? companyId : null
+        const query = mongoose_ObjectId ? { companyId: mongoose_ObjectId } : { companyId }
+        console.log('🔎 Query:', query)
+        
+        const jobs = await Job.find(query)
+          .populate('companyId', 'logo companyName')
+          .sort({ createdAt: -1 })
+        console.log('✅ Found', jobs.length, 'jobs')
+        return res.json({ success: true, jobs })
+      } catch (mongoErr) {
+        console.error('MongoDB query error:', mongoErr.message)
+        return res.json({ success: true, jobs: [] })
+      }
     } else {
       console.log('📦 Getting company jobs from mock storage...')
       const jobs = mockDb.getJobsByCompany(companyId)
+      console.log('✅ Found', jobs.length, 'jobs in mock storage')
       
       const jobsWithCompany = jobs.map(job => {
         if (job.companyId && typeof job.companyId === 'string') {
@@ -519,7 +531,7 @@ app.get('/api/profile/user/:userId', async (req, res) => {
       return res.json({ success: true, user: user.toObject() })
     } else {
       console.log('📦 Getting user profile from mock storage...')
-      const user = mockDb.getUser(userId)
+      const user = mockDb.getUserById(userId)
       if (!user) return res.status(404).json({ success: false, message: 'User not found' })
       const { password, ...userWithoutPassword } = user
       return res.json({ success: true, user: userWithoutPassword })
@@ -543,7 +555,7 @@ app.get('/api/profile/company/:companyId', async (req, res) => {
       return res.json({ success: true, company: company.toObject() })
     } else {
       console.log('📦 Getting company profile from mock storage...')
-      const company = mockDb.getCompany(companyId)
+      const company = mockDb.getCompanyById(companyId)
       if (!company) return res.status(404).json({ success: false, message: 'Company not found' })
       const { password, ...companyWithoutPassword } = company
       return res.json({ success: true, company: companyWithoutPassword })
