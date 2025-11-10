@@ -40,6 +40,7 @@ const bcrypt = require('bcryptjs')
 const mockDb = require('./mockDb')
 
 // ============ ROUTES ============
+// All API endpoints for Digital Job Connection
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -546,22 +547,30 @@ app.get('/api/profile/user/:userId', async (req, res) => {
 app.get('/api/profile/company/:companyId', async (req, res) => {
   try {
     const { companyId } = req.params
-    console.log('🔍 Fetching company profile:', companyId)
+    console.log('🔍 [COMPANY_PROFILE] Fetching company profile:', companyId)
+    console.log('📡 MongoDB connected:', mongoose.connection.readyState === 1)
     
     if (mongoose.connection.readyState === 1) {
       console.log('📦 Getting company profile from MongoDB...')
-      const company = await Company.findById(companyId).select('-password')
-      if (!company) return res.status(404).json({ success: false, message: 'Company not found' })
-      return res.json({ success: true, company: company.toObject() })
+      try {
+        const company = await Company.findById(companyId).select('-password')
+        console.log('✅ Company found:', !!company)
+        if (!company) return res.status(404).json({ success: false, message: 'Company not found' })
+        return res.json({ success: true, company: company.toObject() })
+      } catch (dbErr) {
+        console.error('❌ MongoDB error:', dbErr.message)
+        return res.status(500).json({ success: false, message: 'Database error: ' + dbErr.message })
+      }
     } else {
       console.log('📦 Getting company profile from mock storage...')
       const company = mockDb.getCompanyById(companyId)
-      if (!company) return res.status(404).json({ success: false, message: 'Company not found' })
+      console.log('✅ Mock company found:', !!company)
+      if (!company) return res.status(404).json({ success: false, message: 'Company not found in mock storage' })
       const { password, ...companyWithoutPassword } = company
       return res.json({ success: true, company: companyWithoutPassword })
     }
   } catch (err) {
-    console.error('❌ Get company profile error:', err.message)
+    console.error('❌ Get company profile error:', err.message, err.stack)
     return res.status(500).json({ success: false, message: 'Server error: ' + err.message })
   }
 })
