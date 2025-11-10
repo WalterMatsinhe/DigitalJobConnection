@@ -132,7 +132,9 @@ app.post('/api/login', async (req, res) => {
       if (account) {
         const isMatch = await bcrypt.compare(password, account.password)
         if (!isMatch) return res.status(401).json({ success: false, message: 'Invalid credentials' })
-        return res.json({ success: true, message: 'Login successful', user: { id: account._id, email: account.email, name: account.name, companyName: account.companyName, role: 'company' } })
+        const userId = String(account._id)
+        console.log('✅ Company login successful, ID:', userId)
+        return res.json({ success: true, message: 'Login successful', user: { id: userId, email: account.email, name: account.name, companyName: account.companyName, role: 'company' } })
       }
 
       console.log('🔍 Checking MongoDB for user...')
@@ -140,7 +142,9 @@ app.post('/api/login', async (req, res) => {
       if (account) {
         const isMatch = await bcrypt.compare(password, account.password)
         if (!isMatch) return res.status(401).json({ success: false, message: 'Invalid credentials' })
-        return res.json({ success: true, message: 'Login successful', user: { id: account._id, email: account.email, name: account.name, role: 'user' } })
+        const userId = String(account._id)
+        console.log('✅ User login successful, ID:', userId)
+        return res.json({ success: true, message: 'Login successful', user: { id: userId, email: account.email, name: account.name, role: 'user' } })
       }
     } else {
       console.log('🔍 Checking mock storage...')
@@ -150,17 +154,22 @@ app.post('/api/login', async (req, res) => {
       if (account) {
         const isMatch = await bcrypt.compare(password, account.password)
         if (!isMatch) return res.status(401).json({ success: false, message: 'Invalid credentials' })
-        return res.json({ success: true, message: 'Login successful (' + dbSource + ')', user: { id: account.id, email: account.email, name: account.name, companyName: account.companyName, role: 'company' } })
+        const userId = String(account.id || account._id)
+        console.log('✅ Company login successful (mock), ID:', userId)
+        return res.json({ success: true, message: 'Login successful (' + dbSource + ')', user: { id: userId, email: account.email, name: account.name, companyName: account.companyName, role: 'company' } })
       }
 
       account = mockDb.getUser(email)
       if (account) {
         const isMatch = await bcrypt.compare(password, account.password)
         if (!isMatch) return res.status(401).json({ success: false, message: 'Invalid credentials' })
-        return res.json({ success: true, message: 'Login successful (' + dbSource + ')', user: { id: account.id, email: account.email, name: account.name, role: 'user' } })
+        const userId = String(account.id || account._id)
+        console.log('✅ User login successful (mock), ID:', userId)
+        return res.json({ success: true, message: 'Login successful (' + dbSource + ')', user: { id: userId, email: account.email, name: account.name, role: 'user' } })
       }
     }
 
+    console.warn('⚠️ No user found with email:', email)
     return res.status(401).json({ success: false, message: 'Invalid credentials' })
   } catch (err) {
     console.error('❌ Login error:', err.message)

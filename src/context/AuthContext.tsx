@@ -48,25 +48,51 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     const stored = localStorage.getItem('user')
     if (stored) {
       try {
-        setUser(JSON.parse(stored))
+        const parsedUser = JSON.parse(stored)
+        console.log('🔄 Restoring user from localStorage:', parsedUser)
+        // Ensure user has id field
+        if (!parsedUser.id && parsedUser._id) {
+          parsedUser.id = parsedUser._id
+          localStorage.setItem('user', JSON.stringify(parsedUser))
+        }
+        setUser(parsedUser)
       } catch (err) {
-        console.error('Failed to parse stored user:', err)
+        console.error('❌ Failed to parse stored user:', err)
         localStorage.removeItem('user')
       }
+    } else {
+      console.log('ℹ️ No user found in localStorage')
     }
     setIsLoading(false)
   }, [])
 
   const login = (userData: User) => {
-    setUser(userData)
-    localStorage.setItem('user', JSON.stringify(userData))
+    console.log('🔐 Login: storing user with id:', userData.id)
+    // Ensure id field exists
+    const userWithId = {
+      ...userData,
+      id: userData.id || userData._id || (userData as any)._id
+    }
+    if (!userWithId.id) {
+      console.error('❌ User object missing id field:', userData)
+      throw new Error('User object must have an id field')
+    }
+    setUser(userWithId)
+    localStorage.setItem('user', JSON.stringify(userWithId))
   }
 
   const updateProfile = (userData: Partial<User>) => {
     if (user) {
       const updatedUser = { ...user, ...userData }
+      // Ensure id is never removed
+      if (!updatedUser.id && user.id) {
+        updatedUser.id = user.id
+      }
+      console.log('📝 Updating profile with id:', updatedUser.id)
       setUser(updatedUser)
       localStorage.setItem('user', JSON.stringify(updatedUser))
+    } else {
+      console.warn('⚠️ Cannot update profile - no user logged in')
     }
   }
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import client from '../api/client'
+import { useToast } from '../context/ToastContext'
 
 interface JobPosting {
   id: string
@@ -21,8 +22,19 @@ interface JobPosting {
 export default function PostJob() {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { addToast } = useToast()
   const [searchParams] = useSearchParams()
   const editJobId = searchParams.get('edit')
+  
+  // Debug logging on mount and when user changes
+  useEffect(() => {
+    console.log('📄 PostJob component mounted')
+    console.log('👤 Current user:', user)
+    console.log('🔑 User ID:', user?.id)
+    if (!user?.id) {
+      console.warn('⚠️ User ID is missing! Cannot post jobs.')
+    }
+  }, [user])
   
   const [formData, setFormData] = useState({
     title: '',
@@ -122,7 +134,10 @@ export default function PostJob() {
     
     // Check if user has companyId
     if (!user?.id) {
-      setError('User ID not found. Please log in again.')
+      const errorMsg = 'User ID not found. Please log in again.'
+      console.error('❌ ' + errorMsg, { user })
+      setError(errorMsg)
+      addToast('✗ ' + errorMsg, 'error')
       setLoading(false)
       return
     }
@@ -147,6 +162,7 @@ export default function PostJob() {
       }
       
       console.log('📝 Sending job payload:', payload)
+      console.log('👤 Using user ID:', user.id)
       
       // Post to backend
       const response = editJobId 
@@ -159,12 +175,16 @@ export default function PostJob() {
         throw new Error(data.message || 'Failed to save job')
       }
 
+      addToast('✓ Job ' + (editJobId ? 'updated' : 'posted') + ' successfully!', 'success')
       setPosted(true)
       setTimeout(() => {
         navigate('/company-dashboard')
       }, 2000)
     } catch (err: any) {
-      setError(err.message || 'Failed to save job')
+      const errorMsg = err.message || 'Failed to save job'
+      console.error('❌ Job submission error:', errorMsg)
+      setError(errorMsg)
+      addToast('✗ ' + errorMsg, 'error')
       setLoading(false)
     }
   }

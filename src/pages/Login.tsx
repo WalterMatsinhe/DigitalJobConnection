@@ -40,18 +40,28 @@ export default function Login() {
       if (res.data?.success && res.data?.user) {
         addToast('✓ Login successful!', 'success')
         
-        // Ensure user has id field (backend returns _id, we need id)
-        const userData = {
-          ...res.data.user,
-          id: res.data.user.id || res.data.user._id
+        // Ensure user has id field (backend returns _id from MongoDB, we need id)
+        const backendUser = res.data.user
+        console.log('📥 Backend user response:', backendUser)
+        
+        // Ensure id field is set
+        const userId = backendUser.id || backendUser._id
+        if (!userId) {
+          throw new Error('Backend did not return a user ID. Please contact support.')
         }
         
-        console.log('👤 User data:', userData)
+        const userData = {
+          ...backendUser,
+          id: userId  // Explicitly set the id field
+        }
+        
+        console.log('👤 Processed user data:', userData)
         login(userData)
         
         // Redirect after a short delay
         setTimeout(() => {
           const destination = redirectTo || (userData.role === 'company' ? '/company-dashboard' : '/user-dashboard')
+          console.log('🔀 Redirecting to:', destination)
           navigate(destination)
         }, 500)
       } else {
