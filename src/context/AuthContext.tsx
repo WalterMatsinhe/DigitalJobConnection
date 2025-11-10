@@ -50,12 +50,20 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       try {
         const parsedUser = JSON.parse(stored) as any
         console.log('🔄 Restoring user from localStorage:', parsedUser)
+        
         // Ensure user has id field (backward compatibility for old data)
-        if (!parsedUser.id && parsedUser._id) {
-          parsedUser.id = parsedUser._id
+        const userId = parsedUser.id || parsedUser._id
+        if (!userId) {
+          console.warn('⚠️ Stored user has no ID. Clearing localStorage and requiring re-login.')
+          localStorage.removeItem('user')
+          setUser(null)
+        } else {
+          // Ensure the id field is set
+          parsedUser.id = userId
           localStorage.setItem('user', JSON.stringify(parsedUser))
+          console.log('✅ User restored with ID:', userId)
+          setUser(parsedUser)
         }
-        setUser(parsedUser)
       } catch (err) {
         console.error('❌ Failed to parse stored user:', err)
         localStorage.removeItem('user')
