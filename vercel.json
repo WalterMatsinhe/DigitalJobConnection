@@ -1,9 +1,15 @@
 {
   "buildCommand": "npm run build",
   "devCommand": "npm run dev",
+  "functions": {
+    "api/handler.js": {
+      "memory": 1024,
+      "maxDuration": 30
+    }
+  },
   "rewrites": [
     {
-      "source": "/api/(.*)",
+      "source": "/api/:path*",
       "destination": "/api/handler.js"
     }
   ]

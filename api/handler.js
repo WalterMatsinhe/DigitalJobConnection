@@ -704,4 +704,17 @@ app.post('/api/upload/cv/:userId', async (req, res) => {
   }
 })
 
+// 404 catch-all handler
+app.use((req, res) => {
+  console.warn('❌ 404 - Route not found:', req.method, req.path)
+  res.status(404).json({ success: false, message: 'API endpoint not found' })
+})
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('❌ Unhandled error:', err.message)
+  res.status(500).json({ success: false, message: 'Server error: ' + err.message })
+})
+
+// Export for Vercel serverless
 module.exports = app
