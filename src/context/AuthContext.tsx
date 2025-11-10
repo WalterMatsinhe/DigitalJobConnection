@@ -48,9 +48,9 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     const stored = localStorage.getItem('user')
     if (stored) {
       try {
-        const parsedUser = JSON.parse(stored)
+        const parsedUser = JSON.parse(stored) as any
         console.log('🔄 Restoring user from localStorage:', parsedUser)
-        // Ensure user has id field
+        // Ensure user has id field (backward compatibility for old data)
         if (!parsedUser.id && parsedUser._id) {
           parsedUser.id = parsedUser._id
           localStorage.setItem('user', JSON.stringify(parsedUser))
@@ -69,16 +69,12 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const login = (userData: User) => {
     console.log('🔐 Login: storing user with id:', userData.id)
     // Ensure id field exists
-    const userWithId = {
-      ...userData,
-      id: userData.id || userData._id || (userData as any)._id
-    }
-    if (!userWithId.id) {
+    if (!userData.id) {
       console.error('❌ User object missing id field:', userData)
       throw new Error('User object must have an id field')
     }
-    setUser(userWithId)
-    localStorage.setItem('user', JSON.stringify(userWithId))
+    setUser(userData)
+    localStorage.setItem('user', JSON.stringify(userData))
   }
 
   const updateProfile = (userData: Partial<User>) => {
