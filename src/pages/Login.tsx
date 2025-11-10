@@ -39,11 +39,19 @@ export default function Login() {
       
       if (res.data?.success && res.data?.user) {
         addToast('✓ Login successful!', 'success')
-        login(res.data.user)
+        
+        // Ensure user has id field (backend returns _id, we need id)
+        const userData = {
+          ...res.data.user,
+          id: res.data.user.id || res.data.user._id
+        }
+        
+        console.log('👤 User data:', userData)
+        login(userData)
         
         // Redirect after a short delay
         setTimeout(() => {
-          const destination = redirectTo || (res.data.user.role === 'company' ? '/company-dashboard' : '/user-dashboard')
+          const destination = redirectTo || (userData.role === 'company' ? '/company-dashboard' : '/user-dashboard')
           navigate(destination)
         }, 500)
       } else {
