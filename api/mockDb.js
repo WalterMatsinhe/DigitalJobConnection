@@ -84,7 +84,8 @@ const mockDb = {
   },
 
   getJobsByCompany(companyId) {
-    return Object.values(this.jobs).filter(j => j.companyId === companyId)
+    const companyIdStr = String(companyId)
+    return Object.values(this.jobs).filter(j => String(j.companyId) === companyIdStr)
   },
 
   updateJob(jobId, updateData) {
