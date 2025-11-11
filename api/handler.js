@@ -255,8 +255,9 @@ app.post('/api/jobs', async (req, res) => {
       return res.json({ success: true, message: 'Job posted successfully', job: job.toObject() })
     } else {
       console.log('💾 Saving job to mock storage...')
-      const jobWithId = { ...jobData, _id: Date.now().toString() }
-      mockDb.addJob(jobWithId)
+      const jobId = Date.now().toString()
+      const jobWithId = { ...jobData, _id: jobId }
+      mockDb.addJob(jobId, jobWithId)
       return res.json({ success: true, message: 'Job posted (in-memory)', job: jobWithId })
     }
   } catch (err) {
@@ -303,7 +304,8 @@ app.get('/api/jobs/:jobId', async (req, res) => {
 app.get('/api/jobs/company/:companyId', async (req, res) => {
   try {
     const { companyId } = req.params
-    console.log('🔍 Fetching jobs for company:', companyId)
+    console.log('🔍 [JOBS_COMPANY] Fetching jobs for company:', companyId)
+    console.log('📡 MongoDB connected:', mongoose.connection.readyState === 1)
     
     if (mongoose.connection.readyState === 1) {
       console.log('📦 Getting company jobs from MongoDB...')
@@ -311,21 +313,25 @@ app.get('/api/jobs/company/:companyId', async (req, res) => {
         // Try to convert to ObjectId if it looks like one
         const mongoose_ObjectId = mongoose.Types.ObjectId.isValid(companyId) ? companyId : null
         const query = mongoose_ObjectId ? { companyId: mongoose_ObjectId } : { companyId }
-        console.log('🔎 Query:', query)
+        console.log('🔎 MongoDB Query:', query)
         
         const jobs = await Job.find(query)
           .populate('companyId', 'logo companyName')
           .sort({ createdAt: -1 })
-        console.log('✅ Found', jobs.length, 'jobs')
+        console.log('✅ Found', jobs.length, 'jobs in MongoDB')
         return res.json({ success: true, jobs })
       } catch (mongoErr) {
-        console.error('MongoDB query error:', mongoErr.message)
+        console.error('❌ MongoDB query error:', mongoErr.message)
         return res.json({ success: true, jobs: [] })
       }
     } else {
       console.log('📦 Getting company jobs from mock storage...')
+      const allJobs = mockDb.getAllJobs()
+      console.log('📋 Total jobs in mock storage:', allJobs.length)
+      
       const jobs = mockDb.getJobsByCompany(companyId)
-      console.log('✅ Found', jobs.length, 'jobs in mock storage')
+      console.log('✅ Found', jobs.length, 'jobs for company', companyId)
+      console.log('📝 Company IDs in storage:', allJobs.map(j => j.companyId))
       
       const jobsWithCompany = jobs.map(job => {
         if (job.companyId && typeof job.companyId === 'string') {
