@@ -81,9 +81,12 @@ app.post('/api/register', async (req, res) => {
         return res.json({ success: true, message: 'Company registered', company: { id: company._id, email: company.email, name: company.name, companyName: company.companyName, role: 'company' } })
       } else {
         console.log('💾 Saving company to mock storage...')
-        const companyWithId = { ...companyData, _id: Date.now() }
+        const companyId = Date.now().toString()
+        const companyWithId = { ...companyData, _id: companyId, id: companyId }
         mockDb.addCompany(email, companyWithId)
-        return res.json({ success: true, message: 'Company registered (in-memory)', company: { id: companyWithId._id, email, name, companyName, role: 'company' } })
+        // Also store by ID for profile lookup
+        mockDb.companies[companyId] = companyWithId
+        return res.json({ success: true, message: 'Company registered (in-memory)', company: { id: companyId, email, name, companyName, role: 'company' } })
       }
     } else {
       let existingUser
@@ -105,9 +108,12 @@ app.post('/api/register', async (req, res) => {
         return res.json({ success: true, message: 'User registered', user: { id: user._id, email: user.email, name: user.name, role: 'user' } })
       } else {
         console.log('💾 Saving user to mock storage...')
-        const userWithId = { ...userData, _id: Date.now() }
+        const userId = Date.now().toString()
+        const userWithId = { ...userData, _id: userId, id: userId }
         mockDb.addUser(email, userWithId)
-        return res.json({ success: true, message: 'User registered (in-memory)', user: { id: userWithId._id, email, name, role: 'user' } })
+        // Also store by ID for profile lookup
+        mockDb.users[userId] = userWithId
+        return res.json({ success: true, message: 'User registered (in-memory)', user: { id: userId, email, name, role: 'user' } })
       }
     }
   } catch (err) {
