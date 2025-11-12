@@ -44,7 +44,7 @@ const mockDb = require('./mockDb')
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ success: true, message: 'Server is running', timestamp: new Date() })
+  res.json({ success: true, message: 'Server is running', timestamp: new Date(), version: '1.1' })
 })
 
 // Register endpoint
