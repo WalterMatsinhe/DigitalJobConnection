@@ -11,6 +11,10 @@
     {
       "source": "/api/:path*",
       "destination": "/api/handler.js"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
