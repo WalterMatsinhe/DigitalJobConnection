@@ -26,9 +26,10 @@ export default function Register() {
     e.preventDefault()
     setLoading(true)
     try {
+      const normalizedEmail = email.trim().toLowerCase()
       const payload = {
         name,
-        email,
+        email: normalizedEmail,
         password,
         role,
         phone,
@@ -103,6 +104,7 @@ export default function Register() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             type="password"
+            autoComplete="new-password"
             className="mt-1 block w-full border rounded p-2"
             required
           />

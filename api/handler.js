@@ -65,6 +65,10 @@ app.post('/api/register', async (req, res) => {
     const { name, email, password, role, companyName, industry, website, description, location } = req.body
     if (!email || !password) return res.status(400).json({ success: false, message: 'Email and password are required' })
     if (!role || !['user', 'company'].includes(role)) return res.status(400).json({ success: false, message: 'Role must be "user" or "company"' })
+    
+    // Normalize email: trim and lowercase
+    const normalizedEmail = email.trim().toLowerCase()
+    console.log('📧 Normalized email:', normalizedEmail)
 
     console.log('🔐 Hashing password...')
     const salt = await bcrypt.genSalt(10)
@@ -76,14 +80,14 @@ app.post('/api/register', async (req, res) => {
       let existingCompany
       if (mongoose.connection.readyState === 1) {
         console.log('🔍 Checking existing company in MongoDB...')
-        existingCompany = await Company.findOne({ email })
+        existingCompany = await Company.findOne({ email: normalizedEmail })
       } else {
         console.log('🔍 Checking existing company in mock storage...')
-        existingCompany = mockDb.getCompany(email)
+        existingCompany = mockDb.getCompany(normalizedEmail)
       }
       if (existingCompany) return res.status(409).json({ success: false, message: 'Company already exists' })
 
-      const companyData = { name, email, password: hash, companyName, industry, website, description, location }
+      const companyData = { name, email: normalizedEmail, password: hash, companyName, industry, website, description, location }
       
       if (mongoose.connection.readyState === 1) {
         console.log('💾 Saving company to MongoDB...')
@@ -94,23 +98,23 @@ app.post('/api/register', async (req, res) => {
         console.log('💾 Saving company to mock storage...')
         const companyId = Date.now().toString()
         const companyWithId = { ...companyData, _id: companyId, id: companyId }
-        mockDb.addCompany(email, companyWithId)
+        mockDb.addCompany(normalizedEmail, companyWithId)
         // Also store by ID for profile lookup
         mockDb.companies[companyId] = companyWithId
-        return res.json({ success: true, message: 'Company registered (in-memory)', company: { id: companyId, email, name, companyName, role: 'company' } })
+        return res.json({ success: true, message: 'Company registered (in-memory)', company: { id: companyId, email: normalizedEmail, name, companyName, role: 'company' } })
       }
     } else {
       let existingUser
       if (mongoose.connection.readyState === 1) {
         console.log('🔍 Checking existing user in MongoDB...')
-        existingUser = await User.findOne({ email })
+        existingUser = await User.findOne({ email: normalizedEmail })
       } else {
         console.log('🔍 Checking existing user in mock storage...')
-        existingUser = mockDb.getUser(email)
+        existingUser = mockDb.getUser(normalizedEmail)
       }
       if (existingUser) return res.status(409).json({ success: false, message: 'User already exists' })
 
-      const userData = { name, email, password: hash, role: 'user' }
+      const userData = { name, email: normalizedEmail, password: hash, role: 'user' }
       
       if (mongoose.connection.readyState === 1) {
         console.log('💾 Saving user to MongoDB...')
@@ -121,10 +125,10 @@ app.post('/api/register', async (req, res) => {
         console.log('💾 Saving user to mock storage...')
         const userId = Date.now().toString()
         const userWithId = { ...userData, _id: userId, id: userId }
-        mockDb.addUser(email, userWithId)
+        mockDb.addUser(normalizedEmail, userWithId)
         // Also store by ID for profile lookup
         mockDb.users[userId] = userWithId
-        return res.json({ success: true, message: 'User registered (in-memory)', user: { id: userId, email, name, role: 'user' } })
+        return res.json({ success: true, message: 'User registered (in-memory)', user: { id: userId, email: normalizedEmail, name, role: 'user' } })
       }
     }
   } catch (err) {
@@ -140,13 +144,17 @@ app.post('/api/login', async (req, res) => {
     const { email, password } = req.body
     if (!email || !password) return res.status(400).json({ success: false, message: 'Email and password are required' })
 
+    // Normalize email: trim and lowercase
+    const normalizedEmail = email.trim().toLowerCase()
+    console.log('📧 Normalized email for login:', normalizedEmail)
+
     let account = null
     let dbSource = 'MongoDB'
     const isMongoConnected = mongoose.connection.readyState === 1
 
     if (isMongoConnected) {
       console.log('🔍 Checking MongoDB for company...')
-      account = await Company.findOne({ email })
+      account = await Company.findOne({ email: normalizedEmail })
       if (account) {
         const isMatch = await bcrypt.compare(password, account.password)
         if (!isMatch) return res.status(401).json({ success: false, message: 'Invalid credentials' })
@@ -156,7 +164,7 @@ app.post('/api/login', async (req, res) => {
       }
 
       console.log('🔍 Checking MongoDB for user...')
-      account = await User.findOne({ email })
+      account = await User.findOne({ email: normalizedEmail })
       if (account) {
         const isMatch = await bcrypt.compare(password, account.password)
         if (!isMatch) return res.status(401).json({ success: false, message: 'Invalid credentials' })
@@ -168,7 +176,7 @@ app.post('/api/login', async (req, res) => {
       console.log('🔍 Checking mock storage...')
       dbSource = 'in-memory'
       
-      account = mockDb.getCompany(email)
+      account = mockDb.getCompany(normalizedEmail)
       if (account) {
         const isMatch = await bcrypt.compare(password, account.password)
         if (!isMatch) return res.status(401).json({ success: false, message: 'Invalid credentials' })
@@ -177,7 +185,7 @@ app.post('/api/login', async (req, res) => {
         return res.json({ success: true, message: 'Login successful (' + dbSource + ')', user: { id: userId, email: account.email, name: account.name, companyName: account.companyName, role: 'company' } })
       }
 
-      account = mockDb.getUser(email)
+      account = mockDb.getUser(normalizedEmail)
       if (account) {
         const isMatch = await bcrypt.compare(password, account.password)
         if (!isMatch) return res.status(401).json({ success: false, message: 'Invalid credentials' })
@@ -187,7 +195,7 @@ app.post('/api/login', async (req, res) => {
       }
     }
 
-    console.warn('⚠️ No user found with email:', email)
+    console.warn('⚠️ No user found with email:', normalizedEmail)
     return res.status(401).json({ success: false, message: 'Invalid credentials' })
   } catch (err) {
     console.error('❌ Login error:', err.message)

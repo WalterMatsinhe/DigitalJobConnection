@@ -30,9 +30,10 @@ export default function Login() {
     }
     
     try {
-      console.log('📝 Login attempt with email:', email.trim())
+      const normalizedEmail = email.trim().toLowerCase()
+      console.log('📝 Login attempt with email:', normalizedEmail)
       const res = await client.post('/login', { 
-        email: email.trim(), 
+        email: normalizedEmail, 
         password 
       })
       console.log('✅ Login response:', res.data)
@@ -123,6 +124,7 @@ export default function Login() {
               setError('')
             }}
             type="password"
+            autoComplete="current-password"
             className="mt-1 block w-full border rounded p-2"
             required
           />
