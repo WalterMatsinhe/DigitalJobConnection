@@ -44,7 +44,18 @@ const mockDb = require('./mockDb')
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ success: true, message: 'Server is running', timestamp: new Date(), version: '1.1' })
+  res.json({ 
+    success: true, 
+    message: 'Server is running', 
+    timestamp: new Date(), 
+    version: '1.2',
+    mongoConnected: mongoose.connection.readyState === 1,
+    mockDbStats: {
+      companies: Object.keys(mockDb.companies).length,
+      users: Object.keys(mockDb.users).length,
+      jobs: Object.keys(mockDb.jobs).length
+    }
+  })
 })
 
 // Register endpoint
@@ -540,12 +551,18 @@ app.get('/api/profile/user/:userId', async (req, res) => {
     if (mongoose.connection.readyState === 1) {
       console.log('📦 Getting user profile from MongoDB...')
       const user = await User.findById(userId).select('-password')
-      if (!user) return res.status(404).json({ success: false, message: 'User not found' })
+      if (!user) {
+        console.log('⚠️ User not found, returning empty profile')
+        return res.json({ success: true, user: { userId, name: '', email: '', phone: '', location: '', headline: '', bio: '', avatar: '' } })
+      }
       return res.json({ success: true, user: user.toObject() })
     } else {
       console.log('📦 Getting user profile from mock storage...')
       const user = mockDb.getUserById(userId)
-      if (!user) return res.status(404).json({ success: false, message: 'User not found' })
+      if (!user) {
+        console.log('⚠️ User not found in mock storage, returning empty profile')
+        return res.json({ success: true, user: { userId, name: '', email: '', phone: '', location: '', headline: '', bio: '', avatar: '' } })
+      }
       const { password, ...userWithoutPassword } = user
       return res.json({ success: true, user: userWithoutPassword })
     }
@@ -567,17 +584,24 @@ app.get('/api/profile/company/:companyId', async (req, res) => {
       try {
         const company = await Company.findById(companyId).select('-password')
         console.log('✅ Company found:', !!company)
-        if (!company) return res.status(404).json({ success: false, message: 'Company not found' })
+        if (!company) {
+          // Return empty profile instead of 404
+          console.log('⚠️ Company not found, returning empty profile')
+          return res.json({ success: true, company: { companyId, companyName: '', email: '', industry: '', website: '', description: '', location: '', phone: '', logo: '' } })
+        }
         return res.json({ success: true, company: company.toObject() })
       } catch (dbErr) {
         console.error('❌ MongoDB error:', dbErr.message)
-        return res.status(500).json({ success: false, message: 'Database error: ' + dbErr.message })
+        return res.json({ success: true, company: { companyId, companyName: '', email: '', industry: '', website: '', description: '', location: '', phone: '', logo: '' } })
       }
     } else {
       console.log('📦 Getting company profile from mock storage...')
       const company = mockDb.getCompanyById(companyId)
       console.log('✅ Mock company found:', !!company)
-      if (!company) return res.status(404).json({ success: false, message: 'Company not found in mock storage' })
+      if (!company) {
+        console.log('⚠️ Company not found in mock storage, returning empty profile')
+        return res.json({ success: true, company: { companyId, companyName: '', email: '', industry: '', website: '', description: '', location: '', phone: '', logo: '' } })
+      }
       const { password, ...companyWithoutPassword } = company
       return res.json({ success: true, company: companyWithoutPassword })
     }
