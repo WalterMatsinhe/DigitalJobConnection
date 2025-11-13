@@ -70,16 +70,28 @@ const sessionStore = {
 
 // Health check
 app.get('/api/health', (req, res) => {
+  const mongoState = mongoose.connection.readyState
+  const mongoStateMap = { 0: 'disconnected', 1: 'connected', 2: 'connecting', 3: 'disconnecting' }
+  
   res.json({ 
     success: true, 
     message: 'Server is running', 
     timestamp: new Date(), 
-    version: '1.2',
-    mongoConnected: mongoose.connection.readyState === 1,
-    mockDbStats: {
+    version: '1.3',
+    mongodb: {
+      connected: mongoState === 1,
+      state: mongoStateMap[mongoState],
+      uri: MONGODB_URI ? '✓ Configured' : '✗ Not configured'
+    },
+    sessionCache: {
+      cachedCompanies: Object.keys(sessionStore.companies).length,
+      cachedUsers: Object.keys(sessionStore.users).length
+    },
+    mockDb: {
       companies: Object.keys(mockDb.companies).length,
       users: Object.keys(mockDb.users).length,
-      jobs: Object.keys(mockDb.jobs).length
+      jobs: Object.keys(mockDb.jobs).length,
+      applications: Object.keys(mockDb.applications).length
     }
   })
 })
