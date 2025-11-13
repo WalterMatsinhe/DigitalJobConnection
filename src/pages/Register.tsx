@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import client from '../api/client'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useToast } from '../context/ToastContext'
+import { useAuth } from '../context/AuthContext'
 
 export default function Register() {
   const [searchParams] = useSearchParams()
@@ -19,6 +20,7 @@ export default function Register() {
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
   const { addToast } = useToast()
+  const { login } = useAuth()
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -35,8 +37,30 @@ export default function Register() {
       }
       const res = await client.post('/register', payload)
       if (res.data?.success) {
-        addToast('Registration successful! Redirecting to login...', 'success', 1500)
-        setTimeout(() => navigate('/login'), 1500)
+        console.log('✅ Registration successful:', res.data.user || res.data.company)
+        
+        // Automatically log in the user after registration
+        const userData = res.data.user || res.data.company
+        if (userData) {
+          console.log('🔐 Auto-logging in after registration...')
+          // Ensure user has id field
+          const userId = userData.id || userData._id
+          const userToStore = {
+            ...userData,
+            id: userId
+          }
+          login(userToStore)
+          addToast('✓ Registration successful! Welcome!', 'success', 1500)
+          
+          // Redirect to dashboard
+          setTimeout(() => {
+            const destination = role === 'company' ? '/company-dashboard' : '/user-dashboard'
+            navigate(destination)
+          }, 1500)
+        } else {
+          addToast('Registration successful! Please log in.', 'success', 1500)
+          setTimeout(() => navigate('/login'), 1500)
+        }
       } else {
         addToast(res.data?.message || 'Registration failed', 'error')
       }
