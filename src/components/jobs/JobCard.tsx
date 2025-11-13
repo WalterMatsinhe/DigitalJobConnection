@@ -96,7 +96,7 @@ export default function JobCard({ job }: { job: any }) {
 
           {/* Salary if available */}
           {job.salary && (
-            <div className="mt-3 p-3 bg-amber-50 rounded-lg border border-amber-100">
+            <div className="mt-3 p-3  bg-amber-50 rounded-lg border border-amber-100">
               <p className="text-sm text-amber-900 font-medium">
                 💰 {job.salary}
               </p>
