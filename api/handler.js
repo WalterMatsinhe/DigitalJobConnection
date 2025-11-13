@@ -281,8 +281,10 @@ app.post('/api/jobs', async (req, res) => {
     } else {
       console.log('💾 Saving job to mock storage...')
       const jobId = Date.now().toString()
-      const jobWithId = { ...jobData, _id: jobId }
+      const jobWithId = { ...jobData, _id: jobId, id: jobId }
+      console.log('📝 Job object before save:', { id: jobId, companyId: jobData.companyId, title: jobData.title })
       mockDb.addJob(jobId, jobWithId)
+      console.log('✅ Job saved. All jobs in mock DB:', mockDb.getAllJobs().map(j => ({ _id: j._id, companyId: j.companyId, title: j.title })))
       return res.json({ success: true, message: 'Job posted (in-memory)', job: jobWithId })
     }
   } catch (err) {
@@ -353,10 +355,11 @@ app.get('/api/jobs/company/:companyId', async (req, res) => {
       console.log('📦 Getting company jobs from mock storage...')
       const allJobs = mockDb.getAllJobs()
       console.log('📋 Total jobs in mock storage:', allJobs.length)
+      console.log('📝 All jobs:', allJobs.map(j => ({ _id: j._id, companyId: j.companyId, title: j.title })))
+      console.log('🔎 Looking for company ID:', companyId, '(type:', typeof companyId, ')')
       
       const jobs = mockDb.getJobsByCompany(companyId)
       console.log('✅ Found', jobs.length, 'jobs for company', companyId)
-      console.log('📝 Company IDs in storage:', allJobs.map(j => j.companyId))
       
       const jobsWithCompany = jobs.map(job => {
         if (job.companyId && typeof job.companyId === 'string') {
