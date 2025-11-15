@@ -39,31 +39,6 @@ const Application = require('./models/Application')
 const bcrypt = require('bcryptjs')
 const mockDb = require('./mockDb')
 
-// Persistent session store for this function invocation
-// This helps with Vercel's cold start issues while waiting for MongoDB
-const sessionStore = {
-  users: {},
-  companies: {},
-  
-  addCompanySession(email, companyData) {
-    this.companies[email] = companyData
-    console.log('💾 Cached company session for:', email)
-  },
-  
-  getCompanySession(email) {
-    return this.companies[email]
-  },
-  
-  addUserSession(email, userData) {
-    this.users[email] = userData
-    console.log('💾 Cached user session for:', email)
-  },
-  
-  getUserSession(email) {
-    return this.users[email]
-  }
-}
-
 
 // ============ ROUTES ============
 // All API endpoints for Digital Job Connection
@@ -82,16 +57,6 @@ app.get('/api/health', (req, res) => {
       connected: mongoState === 1,
       state: mongoStateMap[mongoState],
       uri: MONGODB_URI ? '✓ Configured' : '✗ Not configured'
-    },
-    sessionCache: {
-      cachedCompanies: Object.keys(sessionStore.companies).length,
-      cachedUsers: Object.keys(sessionStore.users).length
-    },
-    mockDb: {
-      companies: Object.keys(mockDb.companies).length,
-      users: Object.keys(mockDb.users).length,
-      jobs: Object.keys(mockDb.jobs).length,
-      applications: Object.keys(mockDb.applications).length
     }
   })
 })
@@ -139,8 +104,6 @@ app.post('/api/register', async (req, res) => {
         mockDb.addCompany(normalizedEmail, companyWithId)
         // Also store by ID for profile lookup
         mockDb.companies[companyId] = companyWithId
-        // Cache in session store for this invocation
-        sessionStore.addCompanySession(normalizedEmail, companyWithId)
         return res.json({ success: true, message: 'Company registered (in-memory)', company: { id: companyId, email: normalizedEmail, name, companyName, role: 'company' } })
       }
     } else {
@@ -168,8 +131,6 @@ app.post('/api/register', async (req, res) => {
         mockDb.addUser(normalizedEmail, userWithId)
         // Also store by ID for profile lookup
         mockDb.users[userId] = userWithId
-        // Cache in session store for this invocation
-        sessionStore.addUserSession(normalizedEmail, userWithId)
         return res.json({ success: true, message: 'User registered (in-memory)', user: { id: userId, email: normalizedEmail, name, role: 'user' } })
       }
     }
@@ -215,19 +176,8 @@ app.post('/api/login', async (req, res) => {
         return res.json({ success: true, message: 'Login successful', user: { id: userId, email: account.email, name: account.name, role: 'user' } })
       }
     } else {
-      console.log('🔍 Checking mock storage and session cache...')
+      console.log('🔍 Checking mock storage...')
       dbSource = 'in-memory'
-      
-      // Check session cache first
-      account = sessionStore.getCompanySession(normalizedEmail)
-      if (account) {
-        console.log('✅ Found company in session cache')
-        const isMatch = await bcrypt.compare(password, account.password)
-        if (!isMatch) return res.status(401).json({ success: false, message: 'Invalid credentials' })
-        const userId = String(account.id || account._id)
-        console.log('✅ Company login successful (session cache), ID:', userId)
-        return res.json({ success: true, message: 'Login successful (' + dbSource + ')', user: { id: userId, email: account.email, name: account.name, companyName: account.companyName, role: 'company' } })
-      }
       
       // Fall back to mock storage
       account = mockDb.getCompany(normalizedEmail)
@@ -237,23 +187,10 @@ app.post('/api/login', async (req, res) => {
         if (!isMatch) return res.status(401).json({ success: false, message: 'Invalid credentials' })
         const userId = String(account.id || account._id)
         console.log('✅ Company login successful (mock), ID:', userId)
-        // Re-cache it for future requests in this invocation
-        sessionStore.addCompanySession(normalizedEmail, account)
         return res.json({ success: true, message: 'Login successful (' + dbSource + ')', user: { id: userId, email: account.email, name: account.name, companyName: account.companyName, role: 'company' } })
       }
 
-      // Check session cache first for users
-      account = sessionStore.getUserSession(normalizedEmail)
-      if (account) {
-        console.log('✅ Found user in session cache')
-        const isMatch = await bcrypt.compare(password, account.password)
-        if (!isMatch) return res.status(401).json({ success: false, message: 'Invalid credentials' })
-        const userId = String(account.id || account._id)
-        console.log('✅ User login successful (session cache), ID:', userId)
-        return res.json({ success: true, message: 'Login successful (' + dbSource + ')', user: { id: userId, email: account.email, name: account.name, role: 'user' } })
-      }
-      
-      // Fall back to mock storage
+      // Fall back to mock storage for users
       account = mockDb.getUser(normalizedEmail)
       if (account) {
         console.log('✅ Found user in mock storage')
@@ -261,8 +198,6 @@ app.post('/api/login', async (req, res) => {
         if (!isMatch) return res.status(401).json({ success: false, message: 'Invalid credentials' })
         const userId = String(account.id || account._id)
         console.log('✅ User login successful (mock), ID:', userId)
-        // Re-cache it for future requests in this invocation
-        sessionStore.addUserSession(normalizedEmail, account)
         return res.json({ success: true, message: 'Login successful (' + dbSource + ')', user: { id: userId, email: account.email, name: account.name, role: 'user' } })
       }
     }
