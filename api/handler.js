@@ -16,19 +16,41 @@ app.use(cors())
 const MONGODB_URI = process.env.MONGODB_URI
 
 if (!MONGODB_URI) {
-  console.error('MONGODB_URI not set in environment variables')
+  console.error('⚠️ MONGODB_URI not set in environment variables')
 }
 
-// Connect to MongoDB
-if (MONGODB_URI && mongoose.connection.readyState === 0) {
-  mongoose.connect(MONGODB_URI, { 
-    useNewUrlParser: true, 
-    useUnifiedTopology: true,
-    connectTimeoutMS: 10000,
-    serverSelectionTimeoutMS: 10000
-  })
-    .then(() => console.log('✓ Connected to MongoDB'))
-    .catch((err) => console.error('✗ MongoDB connection error:', err.message))
+// Connect to MongoDB with proper serverless configuration
+const connectDB = async () => {
+  if (mongoose.connection.readyState >= 1) {
+    console.log('📡 MongoDB already connected, reusing connection')
+    return
+  }
+  
+  if (!MONGODB_URI) {
+    console.warn('⚠️ MONGODB_URI not configured, falling back to mock storage')
+    return
+  }
+
+  try {
+    console.log('🔌 Attempting MongoDB connection...')
+    await mongoose.connect(MONGODB_URI, { 
+      useNewUrlParser: true, 
+      useUnifiedTopology: true,
+      connectTimeoutMS: 10000,
+      serverSelectionTimeoutMS: 10000,
+      maxPoolSize: 1, // Serverless optimization
+      socketTimeoutMS: 45000,
+    })
+    console.log('✅ Connected to MongoDB')
+  } catch (err) {
+    console.error('❌ MongoDB connection error:', err.message)
+    throw err
+  }
+}
+
+// Initial connection attempt
+if (MONGODB_URI) {
+  connectDB().catch(err => console.error('Initial connection failed:', err.message))
 }
 
 // Import models
@@ -65,6 +87,13 @@ app.get('/api/health', (req, res) => {
 app.post('/api/register', async (req, res) => {
   try {
     console.log('📨 Register request:', { email: req.body.email, role: req.body.role })
+    
+    // Ensure MongoDB is connected before processing
+    if (MONGODB_URI && mongoose.connection.readyState !== 1) {
+      console.log('⏳ MongoDB not ready, attempting connection...')
+      await connectDB()
+    }
+    
     const { name, email, password, role, companyName, industry, website, description, location } = req.body
     if (!email || !password) return res.status(400).json({ success: false, message: 'Email and password are required' })
     if (!role || !['user', 'company'].includes(role)) return res.status(400).json({ success: false, message: 'Role must be "user" or "company"' })
@@ -144,6 +173,13 @@ app.post('/api/register', async (req, res) => {
 app.post('/api/login', async (req, res) => {
   try {
     console.log('📨 Login request:', { email: req.body.email })
+    
+    // Ensure MongoDB is connected before processing
+    if (MONGODB_URI && mongoose.connection.readyState !== 1) {
+      console.log('⏳ MongoDB not ready, attempting connection...')
+      await connectDB()
+    }
+    
     const { email, password } = req.body
     if (!email || !password) return res.status(400).json({ success: false, message: 'Email and password are required' })
 
@@ -215,6 +251,12 @@ app.get('/api/jobs', async (req, res) => {
   try {
     console.log('🔍 Fetching all jobs...')
     
+    // Ensure MongoDB is connected before processing
+    if (MONGODB_URI && mongoose.connection.readyState !== 1) {
+      console.log('⏳ MongoDB not ready, attempting connection...')
+      await connectDB()
+    }
+    
     if (mongoose.connection.readyState === 1) {
       console.log('📦 Getting jobs from MongoDB...')
       const jobs = await Job.find({ status: 'Active' })
@@ -259,6 +301,12 @@ app.get('/api/jobs', async (req, res) => {
 app.post('/api/jobs', async (req, res) => {
   try {
     console.log('📝 Post job request:', { title: req.body.title })
+    
+    // Ensure MongoDB is connected before processing
+    if (MONGODB_URI && mongoose.connection.readyState !== 1) {
+      console.log('⏳ MongoDB not ready, attempting connection...')
+      await connectDB()
+    }
     const { title, description, requirements, company, companyId, location, jobType, sector, salary, deadline } = req.body
     
     if (!title || !description || !requirements || !company || !companyId || !location || !deadline) {
@@ -306,6 +354,12 @@ app.get('/api/jobs/:jobId', async (req, res) => {
     const { jobId } = req.params
     console.log('🔍 Fetching job:', jobId)
     
+    // Ensure MongoDB is connected before processing
+    if (MONGODB_URI && mongoose.connection.readyState !== 1) {
+      console.log('⏳ MongoDB not ready, attempting connection...')
+      await connectDB()
+    }
+    
     if (mongoose.connection.readyState === 1) {
       console.log('📦 Getting job from MongoDB...')
       const job = await Job.findById(jobId)
@@ -339,6 +393,13 @@ app.get('/api/jobs/company/:companyId', async (req, res) => {
   try {
     const { companyId } = req.params
     console.log('🔍 [JOBS_COMPANY] Fetching jobs for company:', companyId)
+    
+    // Ensure MongoDB is connected before processing
+    if (MONGODB_URI && mongoose.connection.readyState !== 1) {
+      console.log('⏳ MongoDB not ready, attempting connection...')
+      await connectDB()
+    }
+    
     console.log('📡 MongoDB connected:', mongoose.connection.readyState === 1)
     
     if (mongoose.connection.readyState === 1) {
@@ -391,6 +452,12 @@ app.get('/api/jobs/company/:companyId', async (req, res) => {
 app.post('/api/applications', async (req, res) => {
   try {
     console.log('📨 Apply for job request:', { jobId: req.body.jobId, userId: req.body.userId })
+    
+    // Ensure MongoDB is connected before processing
+    if (MONGODB_URI && mongoose.connection.readyState !== 1) {
+      console.log('⏳ MongoDB not ready, attempting connection...')
+      await connectDB()
+    }
     const { jobId, userId, userName, userEmail, coverLetter } = req.body
     
     if (!jobId || !userId || !userName || !userEmail) {
@@ -434,6 +501,12 @@ app.get('/api/applications/job/:jobId', async (req, res) => {
     const { jobId } = req.params
     console.log('🔍 Fetching applications for job:', jobId)
     
+    // Ensure MongoDB is connected before processing
+    if (MONGODB_URI && mongoose.connection.readyState !== 1) {
+      console.log('⏳ MongoDB not ready, attempting connection...')
+      await connectDB()
+    }
+    
     if (mongoose.connection.readyState === 1) {
       console.log('📦 Getting applications from MongoDB...')
       const applications = await Application.find({ jobId })
@@ -461,6 +534,12 @@ app.get('/api/applications/user/:userId', async (req, res) => {
     const { userId } = req.params
     console.log('🔍 Fetching applications for user:', userId)
     
+    // Ensure MongoDB is connected before processing
+    if (MONGODB_URI && mongoose.connection.readyState !== 1) {
+      console.log('⏳ MongoDB not ready, attempting connection...')
+      await connectDB()
+    }
+    
     if (mongoose.connection.readyState === 1) {
       console.log('📦 Getting user applications from MongoDB...')
       const applications = await Application.find({ userId }).populate('jobId').sort({ appliedAt: -1 })
@@ -483,6 +562,12 @@ app.patch('/api/applications/:applicationId', async (req, res) => {
     const { status } = req.body
     
     console.log('✏️ Updating application status:', applicationId, 'to', status)
+    
+    // Ensure MongoDB is connected before processing
+    if (MONGODB_URI && mongoose.connection.readyState !== 1) {
+      console.log('⏳ MongoDB not ready, attempting connection...')
+      await connectDB()
+    }
     
     if (!status) {
       return res.status(400).json({ success: false, message: 'Status is required' })
@@ -521,6 +606,12 @@ app.put('/api/jobs/:jobId', async (req, res) => {
     const updateData = req.body
     console.log('✏️ Updating job:', jobId)
     
+    // Ensure MongoDB is connected before processing
+    if (MONGODB_URI && mongoose.connection.readyState !== 1) {
+      console.log('⏳ MongoDB not ready, attempting connection...')
+      await connectDB()
+    }
+    
     if (mongoose.connection.readyState === 1) {
       console.log('💾 Updating job in MongoDB...')
       const job = await Job.findByIdAndUpdate(jobId, updateData, { new: true })
@@ -544,6 +635,12 @@ app.delete('/api/jobs/:jobId', async (req, res) => {
     const { jobId } = req.params
     console.log('🗑️ Deleting job:', jobId)
     
+    // Ensure MongoDB is connected before processing
+    if (MONGODB_URI && mongoose.connection.readyState !== 1) {
+      console.log('⏳ MongoDB not ready, attempting connection...')
+      await connectDB()
+    }
+    
     if (mongoose.connection.readyState === 1) {
       console.log('💾 Deleting job from MongoDB...')
       const job = await Job.findByIdAndDelete(jobId)
@@ -565,6 +662,12 @@ app.get('/api/profile/user/:userId', async (req, res) => {
   try {
     const { userId } = req.params
     console.log('🔍 Fetching user profile:', userId)
+    
+    // Ensure MongoDB is connected before processing
+    if (MONGODB_URI && mongoose.connection.readyState !== 1) {
+      console.log('⏳ MongoDB not ready, attempting connection...')
+      await connectDB()
+    }
     
     if (mongoose.connection.readyState === 1) {
       console.log('📦 Getting user profile from MongoDB...')
@@ -595,6 +698,13 @@ app.get('/api/profile/company/:companyId', async (req, res) => {
   try {
     const { companyId } = req.params
     console.log('🔍 [COMPANY_PROFILE] Fetching company profile:', companyId)
+    
+    // Ensure MongoDB is connected before processing
+    if (MONGODB_URI && mongoose.connection.readyState !== 1) {
+      console.log('⏳ MongoDB not ready, attempting connection...')
+      await connectDB()
+    }
+    
     console.log('📡 MongoDB connected:', mongoose.connection.readyState === 1)
     
     if (mongoose.connection.readyState === 1) {
@@ -636,6 +746,12 @@ app.put('/api/profile/user/:userId', async (req, res) => {
     const updateData = req.body
     console.log('✏️ Updating user profile:', userId)
     
+    // Ensure MongoDB is connected before processing
+    if (MONGODB_URI && mongoose.connection.readyState !== 1) {
+      console.log('⏳ MongoDB not ready, attempting connection...')
+      await connectDB()
+    }
+    
     delete updateData.password
     delete updateData.email
     delete updateData.role
@@ -665,6 +781,12 @@ app.put('/api/profile/company/:companyId', async (req, res) => {
     const { companyId } = req.params
     const updateData = req.body
     console.log('✏️ Updating company profile:', companyId)
+    
+    // Ensure MongoDB is connected before processing
+    if (MONGODB_URI && mongoose.connection.readyState !== 1) {
+      console.log('⏳ MongoDB not ready, attempting connection...')
+      await connectDB()
+    }
     
     delete updateData.password
     delete updateData.email
@@ -701,6 +823,12 @@ app.post('/api/upload/avatar/:userId', async (req, res) => {
     
     console.log('📸 Uploading avatar for user:', userId)
     
+    // Ensure MongoDB is connected before processing
+    if (MONGODB_URI && mongoose.connection.readyState !== 1) {
+      console.log('⏳ MongoDB not ready, attempting connection...')
+      await connectDB()
+    }
+    
     if (mongoose.connection.readyState === 1) {
       console.log('💾 Saving avatar to MongoDB...')
       const user = await User.findByIdAndUpdate(
@@ -734,6 +862,12 @@ app.post('/api/upload/logo/:companyId', async (req, res) => {
     
     console.log('📸 Uploading logo for company:', companyId)
     
+    // Ensure MongoDB is connected before processing
+    if (MONGODB_URI && mongoose.connection.readyState !== 1) {
+      console.log('⏳ MongoDB not ready, attempting connection...')
+      await connectDB()
+    }
+    
     if (mongoose.connection.readyState === 1) {
       console.log('💾 Saving logo to MongoDB...')
       const company = await Company.findByIdAndUpdate(
@@ -766,6 +900,12 @@ app.post('/api/upload/cv/:userId', async (req, res) => {
     }
     
     console.log('📄 Uploading CV for user:', userId)
+    
+    // Ensure MongoDB is connected before processing
+    if (MONGODB_URI && mongoose.connection.readyState !== 1) {
+      console.log('⏳ MongoDB not ready, attempting connection...')
+      await connectDB()
+    }
     
     if (mongoose.connection.readyState === 1) {
       console.log('💾 Saving CV to MongoDB...')
