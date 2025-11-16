@@ -102,7 +102,7 @@ export default function JobCard({ job }: { job: any }) {
               </p>
             </div>
           )}
-
+ 
           {/* Action Button */}
           <Link 
             to={`/jobs/${jobId}`} 
