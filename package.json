@@ -19,6 +19,7 @@
     "express": "^4.18.2",
     "mongoose": "^7.5.0",
     "msw": "^1.2.1",
+    "nodemailer": "^6.9.7",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-icons": "^5.5.0",
