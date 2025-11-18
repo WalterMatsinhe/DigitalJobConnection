@@ -52,3 +52,18 @@ The frontend dev server proxies `/api` to `http://localhost:4000`, so after star
 
 Security note: Do not commit real credentials to the repo. Use environment variables or a secrets manager for production.
 
+## Deployment
+
+### Vercel Deployment
+
+This application is configured to deploy on Vercel. For detailed deployment instructions and troubleshooting, see [DEPLOYMENT.md](./DEPLOYMENT.md).
+
+**Important**: If your Vercel deployment is asking for authentication, you need to disable **Deployment Protection** in your Vercel project settings. See the [DEPLOYMENT.md](./DEPLOYMENT.md) guide for step-by-step instructions.
+
+Quick deployment steps:
+1. Push your code to GitHub
+2. Import the repository in Vercel
+3. Add `MONGODB_URI` environment variable
+4. Ensure Deployment Protection is disabled (see DEPLOYMENT.md)
+5. Deploy!
+
