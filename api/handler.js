@@ -88,10 +88,17 @@ app.post('/api/register', async (req, res) => {
   try {
     console.log('📨 Register request:', { email: req.body.email, role: req.body.role })
     
-    // Ensure MongoDB is connected before processing
-    if (MONGODB_URI && mongoose.connection.readyState !== 1) {
-      console.log('⏳ MongoDB not ready, attempting connection...')
-      await connectDB()
+    // Ensure MongoDB is connected before processing (critical for Vercel)
+    if (MONGODB_URI) {
+      if (mongoose.connection.readyState !== 1) {
+        console.log('⏳ MongoDB not ready (state:', mongoose.connection.readyState, '), attempting connection...')
+        try {
+          await connectDB()
+        } catch (connErr) {
+          console.error('❌ Failed to connect to MongoDB:', connErr.message)
+          return res.status(503).json({ success: false, message: 'Database unavailable. Please try again later.' })
+        }
+      }
     }
     
     const { name, email, password, role, companyName, industry, website, description, location } = req.body
@@ -106,62 +113,36 @@ app.post('/api/register', async (req, res) => {
     const salt = await bcrypt.genSalt(10)
     const hash = await bcrypt.hash(password, salt)
 
+    // Verify MongoDB is connected after attempting connection
+    if (mongoose.connection.readyState !== 1) {
+      console.error('❌ MongoDB connection failed - state:', mongoose.connection.readyState)
+      return res.status(503).json({ success: false, message: 'Database unavailable. Please try again later.' })
+    }
+
     if (role === 'company') {
       if (!companyName) return res.status(400).json({ success: false, message: 'Company name is required for company registration' })
       
-      let existingCompany
-      if (mongoose.connection.readyState === 1) {
-        console.log('🔍 Checking existing company in MongoDB...')
-        existingCompany = await Company.findOne({ email: normalizedEmail })
-      } else {
-        console.log('🔍 Checking existing company in mock storage...')
-        existingCompany = mockDb.getCompany(normalizedEmail)
-      }
+      console.log('🔍 Checking existing company in MongoDB...')
+      let existingCompany = await Company.findOne({ email: normalizedEmail })
       if (existingCompany) return res.status(409).json({ success: false, message: 'Company already exists' })
 
       const companyData = { name, email: normalizedEmail, password: hash, companyName, industry, website, description, location }
       
-      if (mongoose.connection.readyState === 1) {
-        console.log('💾 Saving company to MongoDB...')
-        const company = new Company(companyData)
-        await company.save()
-        return res.json({ success: true, message: 'Company registered', company: { id: company._id, email: company.email, name: company.name, companyName: company.companyName, role: 'company' } })
-      } else {
-        console.log('💾 Saving company to mock storage...')
-        const companyId = Date.now().toString()
-        const companyWithId = { ...companyData, _id: companyId, id: companyId }
-        mockDb.addCompany(normalizedEmail, companyWithId)
-        // Also store by ID for profile lookup
-        mockDb.companies[companyId] = companyWithId
-        return res.json({ success: true, message: 'Company registered (in-memory)', company: { id: companyId, email: normalizedEmail, name, companyName, role: 'company' } })
-      }
+      console.log('💾 Saving company to MongoDB...')
+      const company = new Company(companyData)
+      await company.save()
+      return res.json({ success: true, message: 'Company registered', company: { id: company._id, email: company.email, name: company.name, companyName: company.companyName, role: 'company' } })
     } else {
-      let existingUser
-      if (mongoose.connection.readyState === 1) {
-        console.log('🔍 Checking existing user in MongoDB...')
-        existingUser = await User.findOne({ email: normalizedEmail })
-      } else {
-        console.log('🔍 Checking existing user in mock storage...')
-        existingUser = mockDb.getUser(normalizedEmail)
-      }
+      console.log('🔍 Checking existing user in MongoDB...')
+      let existingUser = await User.findOne({ email: normalizedEmail })
       if (existingUser) return res.status(409).json({ success: false, message: 'User already exists' })
 
       const userData = { name, email: normalizedEmail, password: hash, role: 'user' }
       
-      if (mongoose.connection.readyState === 1) {
-        console.log('💾 Saving user to MongoDB...')
-        const user = new User(userData)
-        await user.save()
-        return res.json({ success: true, message: 'User registered', user: { id: user._id, email: user.email, name: user.name, role: 'user' } })
-      } else {
-        console.log('💾 Saving user to mock storage...')
-        const userId = Date.now().toString()
-        const userWithId = { ...userData, _id: userId, id: userId }
-        mockDb.addUser(normalizedEmail, userWithId)
-        // Also store by ID for profile lookup
-        mockDb.users[userId] = userWithId
-        return res.json({ success: true, message: 'User registered (in-memory)', user: { id: userId, email: normalizedEmail, name, role: 'user' } })
-      }
+      console.log('💾 Saving user to MongoDB...')
+      const user = new User(userData)
+      await user.save()
+      return res.json({ success: true, message: 'User registered', user: { id: user._id, email: user.email, name: user.name, role: 'user' } })
     }
   } catch (err) {
     console.error('❌ Register error:', err.message)
@@ -174,10 +155,20 @@ app.post('/api/login', async (req, res) => {
   try {
     console.log('📨 Login request:', { email: req.body.email })
     
-    // Ensure MongoDB is connected before processing
-    if (MONGODB_URI && mongoose.connection.readyState !== 1) {
-      console.log('⏳ MongoDB not ready, attempting connection...')
-      await connectDB()
+    // Ensure MongoDB is connected before processing (critical for Vercel)
+    if (MONGODB_URI) {
+      if (mongoose.connection.readyState !== 1) {
+        console.log('⏳ MongoDB not ready (state:', mongoose.connection.readyState, '), attempting connection...')
+        try {
+          await connectDB()
+        } catch (connErr) {
+          console.error('❌ Failed to connect to MongoDB:', connErr.message)
+          return res.status(503).json({ success: false, message: 'Database unavailable. Please try again later.' })
+        }
+      }
+    } else {
+      console.error('❌ MONGODB_URI not configured')
+      return res.status(503).json({ success: false, message: 'Database not configured.' })
     }
     
     const { email, password } = req.body
@@ -187,55 +178,30 @@ app.post('/api/login', async (req, res) => {
     const normalizedEmail = email.trim().toLowerCase()
     console.log('📧 Normalized email for login:', normalizedEmail)
 
-    let account = null
-    let dbSource = 'MongoDB'
-    const isMongoConnected = mongoose.connection.readyState === 1
+    // Verify MongoDB is connected after attempting connection
+    if (mongoose.connection.readyState !== 1) {
+      console.error('❌ MongoDB connection failed - state:', mongoose.connection.readyState)
+      return res.status(503).json({ success: false, message: 'Database unavailable. Please try again later.' })
+    }
 
-    if (isMongoConnected) {
-      console.log('🔍 Checking MongoDB for company...')
-      account = await Company.findOne({ email: normalizedEmail })
-      if (account) {
-        const isMatch = await bcrypt.compare(password, account.password)
-        if (!isMatch) return res.status(401).json({ success: false, message: 'Invalid credentials' })
-        const userId = String(account._id)
-        console.log('✅ Company login successful, ID:', userId)
-        return res.json({ success: true, message: 'Login successful', user: { id: userId, email: account.email, name: account.name, companyName: account.companyName, role: 'company' } })
-      }
+    console.log('🔍 Checking MongoDB for company...')
+    let account = await Company.findOne({ email: normalizedEmail })
+    if (account) {
+      const isMatch = await bcrypt.compare(password, account.password)
+      if (!isMatch) return res.status(401).json({ success: false, message: 'Invalid credentials' })
+      const userId = String(account._id)
+      console.log('✅ Company login successful, ID:', userId)
+      return res.json({ success: true, message: 'Login successful', user: { id: userId, email: account.email, name: account.name, companyName: account.companyName, role: 'company' } })
+    }
 
-      console.log('🔍 Checking MongoDB for user...')
-      account = await User.findOne({ email: normalizedEmail })
-      if (account) {
-        const isMatch = await bcrypt.compare(password, account.password)
-        if (!isMatch) return res.status(401).json({ success: false, message: 'Invalid credentials' })
-        const userId = String(account._id)
-        console.log('✅ User login successful, ID:', userId)
-        return res.json({ success: true, message: 'Login successful', user: { id: userId, email: account.email, name: account.name, role: 'user' } })
-      }
-    } else {
-      console.log('🔍 Checking mock storage...')
-      dbSource = 'in-memory'
-      
-      // Fall back to mock storage
-      account = mockDb.getCompany(normalizedEmail)
-      if (account) {
-        console.log('✅ Found company in mock storage')
-        const isMatch = await bcrypt.compare(password, account.password)
-        if (!isMatch) return res.status(401).json({ success: false, message: 'Invalid credentials' })
-        const userId = String(account.id || account._id)
-        console.log('✅ Company login successful (mock), ID:', userId)
-        return res.json({ success: true, message: 'Login successful (' + dbSource + ')', user: { id: userId, email: account.email, name: account.name, companyName: account.companyName, role: 'company' } })
-      }
-
-      // Fall back to mock storage for users
-      account = mockDb.getUser(normalizedEmail)
-      if (account) {
-        console.log('✅ Found user in mock storage')
-        const isMatch = await bcrypt.compare(password, account.password)
-        if (!isMatch) return res.status(401).json({ success: false, message: 'Invalid credentials' })
-        const userId = String(account.id || account._id)
-        console.log('✅ User login successful (mock), ID:', userId)
-        return res.json({ success: true, message: 'Login successful (' + dbSource + ')', user: { id: userId, email: account.email, name: account.name, role: 'user' } })
-      }
+    console.log('🔍 Checking MongoDB for user...')
+    account = await User.findOne({ email: normalizedEmail })
+    if (account) {
+      const isMatch = await bcrypt.compare(password, account.password)
+      if (!isMatch) return res.status(401).json({ success: false, message: 'Invalid credentials' })
+      const userId = String(account._id)
+      console.log('✅ User login successful, ID:', userId)
+      return res.json({ success: true, message: 'Login successful', user: { id: userId, email: account.email, name: account.name, role: 'user' } })
     }
 
     console.warn('⚠️ No user found with email:', normalizedEmail)

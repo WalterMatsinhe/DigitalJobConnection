@@ -115,3 +115,4 @@ export default function JobCard({ job }: { job: any }) {
     </Card>
   )
 }
+  
