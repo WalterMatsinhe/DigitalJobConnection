@@ -1,5 +1,7 @@
 # Digital Job Connection — Prototype
 
+> **⚠️ Vercel Deployment Issue**: If your Vercel deployment asks for authentication, see [VERCEL_AUTH_FIX.md](./VERCEL_AUTH_FIX.md) for a quick 2-minute fix.
+
 This is a frontend-only prototype that connects Kenyan youth with employers, mentors, training centers, and entrepreneurship resources.
 
 Tech stack:
