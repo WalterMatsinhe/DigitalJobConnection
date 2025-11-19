@@ -4,7 +4,47 @@
  */
 
 const mockDb = {
-  users: {},
+  users: {
+    'mentor1@example.com': {
+      _id: '1',
+      id: '1',
+      name: 'Peter Mwangi',
+      email: 'peter@example.com',
+      role: 'user',
+      yearsExperience: 8,
+      headline: 'Senior Software Engineer',
+      bio: 'Passionate about helping the next generation of professionals succeed in their careers. Specialized in full-stack development and cloud architecture.',
+      skills: ['JavaScript', 'React', 'Node.js', 'AWS'],
+      location: 'Nairobi, Kenya',
+      avatar: '/assets/MentorOne.png'
+    },
+    'mentor2@example.com': {
+      _id: '2',
+      id: '2',
+      name: 'Grace Kipchoge',
+      email: 'grace@example.com',
+      role: 'user',
+      yearsExperience: 10,
+      headline: 'Product Manager & Business Strategist',
+      bio: 'Dedicated to mentoring young professionals in product management and business strategy. Love building products that make a difference.',
+      skills: ['Product Management', 'Business Strategy', 'Leadership', 'Analytics'],
+      location: 'Kampala, Uganda',
+      avatar: '/assets/MentorTwo.png'
+    },
+    'mentor3@example.com': {
+      _id: '3',
+      id: '3',
+      name: 'James Ochieng',
+      email: 'james@example.com',
+      role: 'user',
+      yearsExperience: 12,
+      headline: 'Data Science Lead & AI Expert',
+      bio: 'Expert in machine learning and data science with passion for mentoring. Helping professionals transition into tech roles.',
+      skills: ['Python', 'Machine Learning', 'Data Analytics', 'TensorFlow'],
+      location: 'Dar es Salaam, Tanzania',
+      avatar: '/assets/MentorThree.png'
+    }
+  },
   companies: {},
   jobs: {},
   applications: {},
