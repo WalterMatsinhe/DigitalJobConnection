@@ -220,52 +220,67 @@ app.get('/api/users', async (req, res) => {
     const { role } = req.query
     console.log('🔍 Fetching users with role:', role)
     
-    // Ensure MongoDB is connected before processing
-    if (MONGODB_URI && mongoose.connection.readyState !== 1) {
-      console.log('⏳ MongoDB not ready, attempting connection...')
-      await connectDB()
+    // Try MongoDB first if configured
+    if (MONGODB_URI && mongoose.connection.readyState >= 1) {
+      try {
+        console.log('📦 Attempting to get users from MongoDB...')
+        
+        let query = { role: 'user' }
+        if (role === 'mentor') {
+          query.yearsExperience = { $gt: 0 }
+        }
+        
+        const users = await User.find(role === 'mentor' ? { role: 'user', yearsExperience: { $gt: 0 } } : role === 'company' ? {} : { role: 'user' })
+          .select('-password')
+          .sort(role === 'mentor' ? { yearsExperience: -1 } : { createdAt: -1 })
+          .lean()
+          .exec()
+        
+        console.log('✅ Found', users.length, `${role || 'all'} from MongoDB`)
+        return res.json({ success: true, users })
+      } catch (mongoErr) {
+        console.error('⚠️ MongoDB error:', mongoErr.message)
+        // Fall back to mock storage
+      }
     }
     
-    if (mongoose.connection.readyState === 1) {
-      console.log('📦 Getting users from MongoDB...')
-      
-      if (role === 'mentor') {
-        // For mentors, get users with mentor-related fields
-        const users = await User.find({ 
-          role: 'user',
-          $or: [
-            { yearsExperience: { $exists: true, $gt: 0 } },
-            { skills: { $exists: true, $size: { $gt: 0 } } },
-            { bio: { $exists: true, $ne: '' } }
-          ]
-        }).select('-password').sort({ yearsExperience: -1 })
+    // Ensure MongoDB connection is attempted if not connected
+    if (MONGODB_URI && mongoose.connection.readyState !== 1) {
+      try {
+        console.log('⏳ MongoDB not connected, attempting connection...')
+        await connectDB()
         
+        const users = await User.find(role === 'mentor' ? { role: 'user', yearsExperience: { $gt: 0 } } : role === 'company' ? {} : { role: 'user' })
+          .select('-password')
+          .sort(role === 'mentor' ? { yearsExperience: -1 } : { createdAt: -1 })
+          .lean()
+          .exec()
+        
+        console.log('✅ Found', users.length, `${role || 'all'} from MongoDB`)
         return res.json({ success: true, users })
-      } else if (role === 'company') {
-        const companies = await Company.find().select('-password')
-        return res.json({ success: true, users: companies })
-      } else {
-        // Get all users if no specific role
-        const users = await User.find().select('-password')
-        return res.json({ success: true, users })
-      }
-    } else {
-      console.log('📦 Getting users from mock storage...')
-      
-      if (role === 'mentor') {
-        const allUsers = mockDb.getAllUsers ? mockDb.getAllUsers() : []
-        const mentors = allUsers.filter(u => u.yearsExperience && u.yearsExperience > 0)
-        return res.json({ success: true, users: mentors })
-      } else if (role === 'company') {
-        const allCompanies = mockDb.getAllCompanies ? mockDb.getAllCompanies() : []
-        return res.json({ success: true, users: allCompanies })
-      } else {
-        const allUsers = mockDb.getAllUsers ? mockDb.getAllUsers() : []
-        return res.json({ success: true, users: allUsers })
+      } catch (connErr) {
+        console.error('⚠️ MongoDB connection failed:', connErr.message)
       }
     }
+    
+    // Fall back to mock storage
+    console.log('📦 Using mock storage fallback...')
+    const allUsers = mockDb.getAllUsers() || []
+    const allCompanies = mockDb.getAllCompanies() || []
+    
+    if (role === 'mentor') {
+      const mentors = allUsers.filter(u => u.yearsExperience && u.yearsExperience > 0)
+      console.log('✅ Found', mentors.length, 'mentors from mock storage')
+      return res.json({ success: true, users: mentors })
+    } else if (role === 'company') {
+      console.log('✅ Found', allCompanies.length, 'companies from mock storage')
+      return res.json({ success: true, users: allCompanies })
+    } else {
+      console.log('✅ Found', allUsers.length, 'users from mock storage')
+      return res.json({ success: true, users: allUsers })
+    }
   } catch (err) {
-    console.error('❌ Get users error:', err.message)
+    console.error('❌ Get users error:', err.message, err.stack)
     return res.status(500).json({ success: false, message: 'Server error: ' + err.message })
   }
 })
