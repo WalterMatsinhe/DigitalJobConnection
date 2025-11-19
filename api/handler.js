@@ -36,10 +36,12 @@ const connectDB = async () => {
     await mongoose.connect(MONGODB_URI, { 
       useNewUrlParser: true, 
       useUnifiedTopology: true,
-      connectTimeoutMS: 10000,
-      serverSelectionTimeoutMS: 10000,
+      connectTimeoutMS: 15000,
+      serverSelectionTimeoutMS: 15000,
       maxPoolSize: 1, // Serverless optimization
       socketTimeoutMS: 45000,
+      retryWrites: false,
+      bufferCommands: false,
     })
     console.log('✅ Connected to MongoDB')
   } catch (err) {
@@ -208,6 +210,62 @@ app.post('/api/login', async (req, res) => {
     return res.status(401).json({ success: false, message: 'Invalid credentials' })
   } catch (err) {
     console.error('❌ Login error:', err.message)
+    return res.status(500).json({ success: false, message: 'Server error: ' + err.message })
+  }
+})
+
+// GET USERS BY ROLE (for mentors page)
+app.get('/api/users', async (req, res) => {
+  try {
+    const { role } = req.query
+    console.log('🔍 Fetching users with role:', role)
+    
+    // Ensure MongoDB is connected before processing
+    if (MONGODB_URI && mongoose.connection.readyState !== 1) {
+      console.log('⏳ MongoDB not ready, attempting connection...')
+      await connectDB()
+    }
+    
+    if (mongoose.connection.readyState === 1) {
+      console.log('📦 Getting users from MongoDB...')
+      
+      if (role === 'mentor') {
+        // For mentors, get users with mentor-related fields
+        const users = await User.find({ 
+          role: 'user',
+          $or: [
+            { yearsExperience: { $exists: true, $gt: 0 } },
+            { skills: { $exists: true, $size: { $gt: 0 } } },
+            { bio: { $exists: true, $ne: '' } }
+          ]
+        }).select('-password').sort({ yearsExperience: -1 })
+        
+        return res.json({ success: true, users })
+      } else if (role === 'company') {
+        const companies = await Company.find().select('-password')
+        return res.json({ success: true, users: companies })
+      } else {
+        // Get all users if no specific role
+        const users = await User.find().select('-password')
+        return res.json({ success: true, users })
+      }
+    } else {
+      console.log('📦 Getting users from mock storage...')
+      
+      if (role === 'mentor') {
+        const allUsers = mockDb.getAllUsers ? mockDb.getAllUsers() : []
+        const mentors = allUsers.filter(u => u.yearsExperience && u.yearsExperience > 0)
+        return res.json({ success: true, users: mentors })
+      } else if (role === 'company') {
+        const allCompanies = mockDb.getAllCompanies ? mockDb.getAllCompanies() : []
+        return res.json({ success: true, users: allCompanies })
+      } else {
+        const allUsers = mockDb.getAllUsers ? mockDb.getAllUsers() : []
+        return res.json({ success: true, users: allUsers })
+      }
+    }
+  } catch (err) {
+    console.error('❌ Get users error:', err.message)
     return res.status(500).json({ success: false, message: 'Server error: ' + err.message })
   }
 })

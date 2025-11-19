@@ -15,6 +15,7 @@ const userSchema = new mongoose.Schema({
   experience: { type: String, default: '' },
   education: { type: String, default: '' },
   portfolio: { type: String, default: '' },
+  yearsExperience: { type: Number, default: 0 },
   avatar: { type: String, default: '/assets/Black American professionals in career.png' },
   // CV fields
   cv: { type: String, default: '' },
