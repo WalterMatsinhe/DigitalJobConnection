@@ -38,6 +38,8 @@ export default function ApplicationsModal({ jobId, jobTitle, isOpen, onClose }: 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [expandedAppId, setExpandedAppId] = useState<string | null>(null)
+  const [rejectionFeedback, setRejectionFeedback] = useState<{ [key: string]: string }>({})
+  const [sendingEmailFor, setSendingEmailFor] = useState<string | null>(null)
 
   useEffect(() => {
     if (isOpen && jobId) {
@@ -66,12 +68,19 @@ export default function ApplicationsModal({ jobId, jobTitle, isOpen, onClose }: 
 
   const updateApplicationStatus = async (applicationId: string, newStatus: string) => {
     try {
+      setSendingEmailFor(applicationId)
+      const feedback = rejectionFeedback[applicationId] || null
+      
       const response = await fetch(`/api/applications/${applicationId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ status: newStatus })
+        body: JSON.stringify({ 
+          status: newStatus,
+          feedback: feedback,
+          sendEmail: true // Flag to send email from backend
+        })
       })
 
       const data = await response.json()
@@ -80,11 +89,21 @@ export default function ApplicationsModal({ jobId, jobTitle, isOpen, onClose }: 
         setApplications(applications.map(app => 
           app._id === applicationId ? { ...app, status: newStatus } : app
         ))
+        // Clear rejection feedback after successful update
+        setRejectionFeedback(prev => {
+          const updated = { ...prev }
+          delete updated[applicationId]
+          return updated
+        })
+        alert(`✅ Application ${newStatus.toLowerCase()}! Email notification sent to candidate.`)
       } else {
         alert(data.message || 'Failed to update application status')
       }
     } catch (err: any) {
       alert('Error updating application status')
+      console.error(err)
+    } finally {
+      setSendingEmailFor(null)
     }
   }
 
@@ -288,40 +307,60 @@ export default function ApplicationsModal({ jobId, jobTitle, isOpen, onClose }: 
                           </div>
                         )}
 
+                        {/* Rejection Feedback */}
+                        {app.status !== 'Accepted' && (
+                          <div className="mb-6">
+                            <h4 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                              <span>💬</span> Rejection Feedback (Optional)
+                            </h4>
+                            <textarea
+                              value={rejectionFeedback[app._id] || ''}
+                              onChange={(e) => setRejectionFeedback(prev => ({
+                                ...prev,
+                                [app._id]: e.target.value
+                              }))}
+                              placeholder="Provide constructive feedback to help the candidate improve (optional). This will be included in the rejection email."
+                              className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              rows={3}
+                            />
+                            <p className="text-xs text-gray-500 mt-1">💡 Tip: Constructive feedback helps candidates improve and reflects well on your company.</p>
+                          </div>
+                        )}
+
                         {/* Action Buttons */}
                         <div className="flex gap-2 pt-4 border-t border-gray-200">
                           <button
                             onClick={() => updateApplicationStatus(app._id, 'Accepted')}
-                            disabled={app.status === 'Accepted'}
+                            disabled={app.status === 'Accepted' || sendingEmailFor === app._id}
                             className={`px-4 py-2 text-sm font-semibold rounded transition ${
-                              app.status === 'Accepted'
+                              app.status === 'Accepted' || sendingEmailFor === app._id
                                 ? 'bg-green-100 text-green-700 cursor-not-allowed'
                                 : 'bg-green-50 text-green-700 border border-green-300 hover:bg-green-100'
                             }`}
                           >
-                            ✓ Accept
+                            {sendingEmailFor === app._id ? '📧 Sending...' : '✓ Accept'}
                           </button>
                           <button
                             onClick={() => updateApplicationStatus(app._id, 'Rejected')}
-                            disabled={app.status === 'Rejected'}
+                            disabled={app.status === 'Rejected' || sendingEmailFor === app._id}
                             className={`px-4 py-2 text-sm font-semibold rounded transition ${
-                              app.status === 'Rejected'
+                              app.status === 'Rejected' || sendingEmailFor === app._id
                                 ? 'bg-red-100 text-red-700 cursor-not-allowed'
                                 : 'bg-red-50 text-red-700 border border-red-300 hover:bg-red-100'
                             }`}
                           >
-                            ✕ Reject
+                            {sendingEmailFor === app._id ? '📧 Sending...' : '✕ Reject'}
                           </button>
                           <button
                             onClick={() => updateApplicationStatus(app._id, 'Reviewed')}
-                            disabled={app.status === 'Reviewed'}
+                            disabled={app.status === 'Reviewed' || sendingEmailFor === app._id}
                             className={`px-4 py-2 text-sm font-semibold rounded transition ${
-                              app.status === 'Reviewed'
+                              app.status === 'Reviewed' || sendingEmailFor === app._id
                                 ? 'bg-blue-100 text-blue-700 cursor-not-allowed'
                                 : 'bg-blue-50 text-blue-700 border border-blue-300 hover:bg-blue-100'
                             }`}
                           >
-                            👁 Review
+                            {sendingEmailFor === app._id ? '📧 Sending...' : '👁 Review'}
                           </button>
                         </div>
                       </div>

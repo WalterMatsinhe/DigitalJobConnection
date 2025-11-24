@@ -62,6 +62,7 @@ const Job = require('./models/Job')
 const Application = require('./models/Application')
 const bcrypt = require('bcryptjs')
 const mockDb = require('./mockDb')
+const { sendAcceptanceEmail, sendRejectionEmail } = require('./services/emailService')
 
 
 // ============ ROUTES ============
@@ -598,7 +599,7 @@ app.get('/api/applications/user/:userId', async (req, res) => {
 app.patch('/api/applications/:applicationId', async (req, res) => {
   try {
     const { applicationId } = req.params
-    const { status } = req.body
+    const { status, feedback, sendEmail } = req.body
     
     console.log('✏️ Updating application status:', applicationId, 'to', status)
     
@@ -617,20 +618,91 @@ app.patch('/api/applications/:applicationId', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid status' })
     }
     
+    let application = null
+    let job = null
+    let candidate = null
+    let company = null
+    
     if (mongoose.connection.readyState === 1) {
       console.log('💾 Updating application in MongoDB...')
-      const application = await Application.findByIdAndUpdate(
+      application = await Application.findByIdAndUpdate(
         applicationId,
         { status },
         { new: true }
-      )
+      ).populate('jobId').populate('userId')
+      
       if (!application) return res.status(404).json({ success: false, message: 'Application not found' })
-      return res.json({ success: true, message: 'Application status updated', application: application.toObject() })
+      
+      // Fetch job and company details for email
+      if (application.jobId) {
+        job = await Job.findById(application.jobId)
+        if (job) {
+          company = await Company.findById(job.companyId)
+        }
+      }
+      
+      candidate = await User.findById(application.userId)
     } else {
       console.log('💾 Updating application in mock storage...')
-      const application = mockDb.updateApplication(applicationId, { status })
+      application = mockDb.updateApplication(applicationId, { status })
       if (!application) return res.status(404).json({ success: false, message: 'Application not found' })
-      return res.json({ success: true, message: 'Application status updated (in-memory)', application })
+      
+      // Fetch from mock storage
+      job = mockDb.getJob(application.jobId)
+      if (job) {
+        company = mockDb.getCompanyById(job.companyId)
+      }
+      candidate = mockDb.getUserById(application.userId)
+    }
+    
+    // Send email if configured and requested
+    if (sendEmail && process.env.EMAIL_USER && process.env.EMAIL_PASSWORD) {
+      try {
+        console.log('📧 Email service configured, sending notification...')
+        const candidateEmail = application.userEmail || (candidate && candidate.email)
+        const candidateName = application.userName || (candidate && candidate.name) || 'Candidate'
+        const jobTitle = (job && job.title) || 'Applied Position'
+        const companyName = (company && company.companyName) || 'Our Company'
+        const companyEmail = (company && company.email) || process.env.EMAIL_USER
+        const companyPhone = (company && company.phone) || 'Contact us for details'
+        
+        if (candidateEmail) {
+          if (status === 'Accepted') {
+            console.log(`✅ Sending acceptance email to ${candidateEmail}...`)
+            await sendAcceptanceEmail(
+              candidateEmail,
+              candidateName,
+              jobTitle,
+              companyName,
+              companyEmail,
+              companyPhone
+            )
+            console.log(`✅ Acceptance email sent successfully`)
+          } else if (status === 'Rejected') {
+            console.log(`✅ Sending rejection email to ${candidateEmail}...`)
+            await sendRejectionEmail(
+              candidateEmail,
+              candidateName,
+              jobTitle,
+              companyName,
+              companyEmail,
+              feedback || null
+            )
+            console.log(`✅ Rejection email sent successfully`)
+          }
+        }
+      } catch (emailErr) {
+        console.warn('⚠️ Email sending failed (non-blocking):', emailErr.message)
+        // Don't fail the application update if email fails
+      }
+    } else if (sendEmail && !process.env.EMAIL_USER) {
+      console.warn('⚠️ Email service not configured. Set EMAIL_USER and EMAIL_PASSWORD in environment variables.')
+    }
+    
+    if (mongoose.connection.readyState === 1) {
+      return res.json({ success: true, message: 'Application status updated and email sent', application: application.toObject() })
+    } else {
+      return res.json({ success: true, message: 'Application status updated and email sent (in-memory)', application })
     }
   } catch (err) {
     console.error('❌ Update application error:', err.message)
